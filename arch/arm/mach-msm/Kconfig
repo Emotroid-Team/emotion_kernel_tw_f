@@ -269,6 +269,7 @@ config ARCH_MSM8226
 	select PINCTRL_MSM_TLMM_V3
 	select ENABLE_VMALLOC_SAVINGS
 	select MSM_IRQ
+	select HAS_MACH_MEMUTILS
 
 config ARCH_MSMSAMARIUM
 	bool "MSMSAMARIUM"
@@ -1826,4 +1827,19 @@ config SAMSUNG_PRODUCT_SHIP
         bool "set up for product shipping"
         default n
 
+<<<<<<< HEAD
+=======
+config MMI_SOC_INFO
+	depends on ARCH_MSM
+	default n
+	bool "Motorola Mobility SOC Info"
+	help
+	  Provide mechanism to export MSM SOC info.
+
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
+>>>>>>> 819a60a... msm: memutils: memcpy, memmove, copy_page optimization
 endif
