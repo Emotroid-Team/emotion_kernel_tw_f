@@ -154,3 +154,4 @@ obj-$(CONFIG_GSM_MODEM_SPRD6500) += board-sprd6500-spi.o board-sprd6500-modems.o
 obj-$(CONFIG_MSM_CPUFREQ_LIMIT) += cpufreq_limit.o
 obj-$(CONFIG_ZEN_DECISION) += msm_zen_decision.o
 obj-$(CONFIG_MMI_UNIT_INFO) += mmi-unit-info.o
+obj-$(CONFIG_MMI_SOC_INFO) += mmi_soc_info.o
