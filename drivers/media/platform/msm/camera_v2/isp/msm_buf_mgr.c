@@ -938,7 +938,7 @@ static int msm_isp_init_isp_buf_mgr(
 	for (i = 0; i < num_buf_q; i++) {
 		spin_lock_init(&buf_mgr->bufq[i].bufq_lock);
 	}
-	buf_mgr->client = msm_ion_client_create(-1, ctx_name);
+	buf_mgr->client = msm_ion_client_create(ctx_name);
 	buf_mgr->buf_handle_cnt = 0;
 	return 0;
 bufq_error:

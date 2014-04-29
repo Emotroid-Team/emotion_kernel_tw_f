@@ -271,7 +271,7 @@ int msm_jpeg_platform_init(struct platform_device *pdev,
 	*base = jpeg_base;
 	*irq  = jpeg_irq;
 
-	pgmn_dev->jpeg_client = msm_ion_client_create(-1, pdev->name);
+	pgmn_dev->jpeg_client = msm_ion_client_create(pdev->name);
 	JPEG_DBG("%s:%d] success\n", __func__, __LINE__);
 
 	return rc;
