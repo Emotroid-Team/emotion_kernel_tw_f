@@ -417,9 +417,7 @@ KBUILD_CFLAGS   := -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-switch-bool \
 		   -fno-delete-null-pointer-checks \
 		   -fno-aggressive-loop-optimizations \
-		   -std=gnu89 $(GRAPHITE_FLAGS) $(KERNELFLAGS) \
-   		   $(call cc-option,-fno-delete-null-pointer-checks,)
-
+		   -std=gnu89 $(GRAPHITE_FLAGS) $(KERNELFLAGS) 
 
 # L1/L2 cache size parameters
 KBUILD_CFLAGS	+= --param l1-cache-size=32 --param l1-cache-line-size=32 --param l2-cache-size=1024
@@ -629,13 +627,15 @@ endif # $(dot-config)
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
 
+include $(srctree)/arch/$(SRCARCH)/Makefile
+
+KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os -std=gnu89 $(call cc-disable-warning,maybe-uninitialized,)
 else
 KBUILD_CFLAGS	+= -Os -std=gnu89 $(call cc-disable-warning,maybe-uninitialized,)
 endif
-
-include $(srctree)/arch/$(SRCARCH)/Makefile
 
 ifdef CONFIG_READABLE_ASM
 # Disable optimizations that make assembler listings hard to read.
