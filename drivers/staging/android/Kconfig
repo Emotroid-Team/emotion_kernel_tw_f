@@ -119,6 +119,14 @@ config EXCLUDE_LRU_LIVING_IN_CMA
           so that LMK will kill a process to release memory pressure
 	  This feature based on reclamation prohibition for CMA area.
 
+config ANDROID_LMK_ADJ_RBTREE
+	bool "Use RBTREE for Android Low Memory Killer"
+	depends on ANDROID_LOW_MEMORY_KILLER
+	default y
+	---help---
+	    Use oom_score_adj rbtree to select the best proecss to kill
+	    when system in low memory status.
+
 config ANDROID_INTF_ALARM_DEV
 	bool "Android alarm driver"
 	depends on RTC_CLASS
