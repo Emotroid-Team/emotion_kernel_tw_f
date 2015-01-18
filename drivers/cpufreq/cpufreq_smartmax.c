@@ -34,8 +34,8 @@
 #include <linux/timer.h>
 #include <linux/workqueue.h>
 #include <linux/moduleparam.h>
-#include <linux/rwsem.h>
 #include <linux/jiffies.h>
+#include <linux/earlysuspend.h>
 #include <linux/input.h>
 #include <linux/kthread.h>
 #include <linux/slab.h>
@@ -154,7 +154,6 @@ struct smartmax_info_s {
 	unsigned int cur_cpu_load;
 	unsigned int old_freq;
 	int ramp_dir;
-    struct rw_semaphore enable_sem;
 	bool enable;
 	unsigned int ideal_speed;
 	unsigned int cpu;
@@ -340,11 +339,11 @@ inline static void target_freq(struct cpufreq_policy *policy,
 			// to ramp up to *at least* current + ramp_up_step.
 			if (new_freq > old_freq && prefered_relation == CPUFREQ_RELATION_H
 					&& !cpufreq_frequency_table_target(policy, table, new_freq,
-							CPUFREQ_RELATION_L, &index))
+							CPUFREQ_RELATION_C, &index))
 				target = table[index].frequency;
 			// simlarly for ramping down:
 			else if (new_freq < old_freq
-					&& prefered_relation == CPUFREQ_RELATION_L
+					&& prefered_relation == CPUFREQ_RELATION_C
 					&& !cpufreq_frequency_table_target(policy, table, new_freq,
 							CPUFREQ_RELATION_H, &index))
 				target = table[index].frequency;
@@ -376,7 +375,7 @@ static void cpufreq_smartmax_freq_change(struct smartmax_info_s *this_smartmax) 
 	unsigned int old_freq;
 	int ramp_dir;
 	struct cpufreq_policy *policy;
-	unsigned int relation = CPUFREQ_RELATION_L;
+	unsigned int relation = CPUFREQ_RELATION_C;
 
 	ramp_dir = this_smartmax->ramp_dir;
 	old_freq = this_smartmax->old_freq;
@@ -454,6 +453,7 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 	cputime64_t now = ktime_to_ns(ktime_get());
 	unsigned int max_load_freq;
 	unsigned int debug_load = 0;
+	unsigned int debug_iowait = 0;
 	unsigned int j = 0;
 #if SMARTMAX_DEBUG
 	unsigned int cpu = this_smartmax->cpu;
@@ -472,8 +472,9 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 		struct smartmax_info_s *j_this_smartmax;
 		cputime64_t cur_wall_time, cur_idle_time, cur_iowait_time;
 		unsigned int idle_time, wall_time, iowait_time;
-		unsigned int cur_load;
-		
+		unsigned int load, load_freq;
+		int freq_avg;
+
 		j_this_smartmax = &per_cpu(smartmax_info, j);
 
 		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, io_is_busy);
@@ -517,8 +518,18 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
-		cur_load = 100 * (wall_time - idle_time) / wall_time;
-		j_this_smartmax->cur_cpu_load = cur_load;
+		load = 100 * (wall_time - idle_time) / wall_time;
+
+		freq_avg = __cpufreq_driver_getavg(policy, j);
+		if (freq_avg <= 0)
+			freq_avg = policy->cur;
+
+		load_freq = load * freq_avg;
+		if (load_freq > max_load_freq) {
+			max_load_freq = load_freq;
+			debug_load = load;
+			debug_iowait = 100 * iowait_time / wall_time;
+		}
 	}
 
 	dprintk(SMARTMAX_DEBUG_LOAD, "%d: load %d\n", cur, debug_load);
@@ -991,9 +1002,9 @@ static int cpufreq_smartmax_boost_task(void *data) {
 		policy = this_smartmax->cur_policy;
 		if (!policy)
 			continue;
-        
-        if (!down_read_trylock(&this_smartmax->enable_sem))
-            break;
+
+//		if (lock_policy_rwsem_write(0) < 0)
+//			continue;
 
 		mutex_lock(&this_smartmax->timer_mutex);
 
@@ -1008,8 +1019,8 @@ static int cpufreq_smartmax_boost_task(void *data) {
 			this_smartmax->prev_cpu_idle = get_cpu_idle_time(0, &this_smartmax->prev_cpu_wall, io_is_busy);
 		}
 		mutex_unlock(&this_smartmax->timer_mutex);
-        
-        up_read(&this_smartmax->enable_sem);
+				
+//		unlock_policy_rwsem_write(0);
 	}
 
 	return 0;
@@ -1191,7 +1202,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 		else if (this_smartmax->cur_policy->cur < new_policy->min) {
 			dprintk(SMARTMAX_DEBUG_JUMPS,"jumping to new min freq: %d\n",new_policy->min);
 			__cpufreq_driver_target(this_smartmax->cur_policy,
-					new_policy->min, CPUFREQ_RELATION_L);
+					new_policy->min, CPUFREQ_RELATION_C);
 		}
 		mutex_unlock(&this_smartmax->timer_mutex);
 		break;

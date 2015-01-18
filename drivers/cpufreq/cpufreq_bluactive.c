@@ -1161,7 +1161,7 @@ static int cpufreq_governor_bluactive(struct cpufreq_policy *policy,
 					policy->max, CPUFREQ_RELATION_H);
 		else if (policy->min > policy->cur)
 			__cpufreq_driver_target(policy,
-					policy->min, CPUFREQ_RELATION_L);
+					policy->min, CPUFREQ_RELATION_C);
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
 

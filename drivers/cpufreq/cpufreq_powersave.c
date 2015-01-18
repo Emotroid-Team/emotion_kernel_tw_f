@@ -25,7 +25,7 @@ static int cpufreq_governor_powersave(struct cpufreq_policy *policy,
 		pr_debug("setting to %u kHz because of event %u\n",
 							policy->min, event);
 		__cpufreq_driver_target(policy, policy->min,
-						CPUFREQ_RELATION_L);
+						CPUFREQ_RELATION_C);
 		break;
 	default:
 		break;

@@ -97,7 +97,7 @@ static void cs_check_cpu(int cpu, unsigned int load)
 			dbs_info->requested_freq = policy->min;
 
 		__cpufreq_driver_target(policy, dbs_info->requested_freq,
-				CPUFREQ_RELATION_L);
+				CPUFREQ_RELATION_C);
 		return;
 	}
 }

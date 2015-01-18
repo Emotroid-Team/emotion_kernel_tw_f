@@ -38,7 +38,7 @@ static int cpufreq_set(struct cpufreq_policy *policy, unsigned int freq)
 	if (!per_cpu(cpu_is_managed, policy->cpu))
 		goto err;
 
-	ret = __cpufreq_driver_target(policy, freq, CPUFREQ_RELATION_L);
+	ret = __cpufreq_driver_target(policy, freq, CPUFREQ_RELATION_C);
  err:
 	mutex_unlock(&userspace_mutex);
 	return ret;
@@ -82,7 +82,7 @@ static int cpufreq_governor_userspace(struct cpufreq_policy *policy,
 						CPUFREQ_RELATION_H);
 		else if (policy->min > policy->cur)
 			__cpufreq_driver_target(policy, policy->min,
-						CPUFREQ_RELATION_L);
+						CPUFREQ_RELATION_C);
 		mutex_unlock(&userspace_mutex);
 		break;
 	}

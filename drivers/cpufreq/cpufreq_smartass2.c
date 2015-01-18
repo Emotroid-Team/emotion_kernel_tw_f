@@ -253,10 +253,10 @@ inline static int target_freq(struct cpufreq_policy *policy, struct smartass_inf
 			// to ramp up to *at least* current + ramp_up_step.
 			if (new_freq > old_freq && prefered_relation==CPUFREQ_RELATION_H
 			    && !cpufreq_frequency_table_target(policy,table,new_freq,
-							       CPUFREQ_RELATION_L,&index))
+							       CPUFREQ_RELATION_C,&index))
 				target = table[index].frequency;
 			// simlarly for ramping down:
-			else if (new_freq < old_freq && prefered_relation==CPUFREQ_RELATION_L
+			else if (new_freq < old_freq && prefered_relation==CPUFREQ_RELATION_C
 				&& !cpufreq_frequency_table_target(policy,table,new_freq,
 								   CPUFREQ_RELATION_H,&index))
 				target = table[index].frequency;
@@ -390,7 +390,7 @@ static void cpufreq_smartass_freq_change_time_work(struct work_struct *work)
 	int ramp_dir;
 	struct smartass_info_s *this_smartass;
 	struct cpufreq_policy *policy;
-	unsigned int relation = CPUFREQ_RELATION_L;
+	unsigned int relation = CPUFREQ_RELATION_C;
 	for_each_possible_cpu(cpu) {
 		this_smartass = &per_cpu(smartass_info, cpu);
 		if (!work_cpumask_test_and_clear(cpu))
@@ -736,7 +736,7 @@ static int cpufreq_governor_smartass(struct cpufreq_policy *new_policy,
 		else if (this_smartass->cur_policy->cur < new_policy->min) {
 			dprintk(SMARTASS_DEBUG_JUMPS,"SmartassI: jumping to new min freq: %d\n",new_policy->min);
 			__cpufreq_driver_target(this_smartass->cur_policy,
-						new_policy->min, CPUFREQ_RELATION_L);
+						new_policy->min, CPUFREQ_RELATION_C);
 		}
 
 		if (this_smartass->cur_policy->cur < new_policy->max && !timer_pending(&this_smartass->timer))
@@ -778,7 +778,7 @@ static void smartass_suspend(int cpu, int suspend)
 		dprintk(SMARTASS_DEBUG_JUMPS,"SmartassS: awaking at %d\n",new_freq);
 
 		__cpufreq_driver_target(policy, new_freq,
-					CPUFREQ_RELATION_L);
+					CPUFREQ_RELATION_C);
 	} else {
 		// to avoid wakeup issues with quick sleep/wakeup don't change actual frequency when entering sleep
 		// to allow some time to settle down. Instead we just reset our statistics (and reset the timer).

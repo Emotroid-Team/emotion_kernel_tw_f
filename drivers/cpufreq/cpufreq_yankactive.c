@@ -1,7 +1,8 @@
 /*
- * drivers/cpufreq/cpufreq_interactive.c
+ * drivers/cpufreq/cpufreq_yankactive.c
  *
  * Copyright (C) 2010 Google, Inc.
+ *           (C) 2014 LoungeKatt <twistedumbrella@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -23,6 +24,7 @@
 #include <linux/moduleparam.h>
 #include <linux/rwsem.h>
 #include <linux/sched.h>
+#include <linux/sched/rt.h>
 #include <linux/tick.h>
 #include <linux/time.h>
 #include <linux/timer.h>
@@ -32,11 +34,14 @@
 #include <linux/kernel_stat.h>
 #include <asm/cputime.h>
 
-#include <trace/events/cpufreq_interactive.h>
+#define CREATE_TRACE_POINTS
+#include <trace/events/cpufreq_yankactive.h>
+
+#define DEFAULT_HISPEED_FREQ	1728000
 
 static int active_count;
 
-struct cpufreq_interactive_cpuinfo {
+struct cpufreq_yankactive_cpuinfo {
 	struct timer_list cpu_timer;
 	struct timer_list cpu_slack_timer;
 	spinlock_t load_lock; /* protects the next 4 fields */
@@ -44,13 +49,10 @@ struct cpufreq_interactive_cpuinfo {
 	u64 time_in_idle_timestamp;
 	u64 cputime_speedadj;
 	u64 cputime_speedadj_timestamp;
-	u64 last_evaluated_jiffy;
 	struct cpufreq_policy *policy;
 	struct cpufreq_frequency_table *freq_table;
-	spinlock_t target_freq_lock; /*protects target freq */
 	unsigned int target_freq;
 	unsigned int floor_freq;
-	unsigned int max_freq;
 	u64 floor_validate_time;
 	u64 hispeed_validate_time;
 	struct rw_semaphore enable_sem;
@@ -59,7 +61,9 @@ struct cpufreq_interactive_cpuinfo {
 	bool limits_changed;
 };
 
-static DEFINE_PER_CPU(struct cpufreq_interactive_cpuinfo, cpuinfo);
+#define MIN_TIMER_JIFFIES 1UL
+
+static DEFINE_PER_CPU(struct cpufreq_yankactive_cpuinfo, cpuinfo);
 
 /* realtime thread handles frequency scaling */
 static struct task_struct *speedchange_task;
@@ -78,22 +82,16 @@ static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 static unsigned int sampling_down_factor;
 
 /* Target load.  Lower values result in higher CPU speeds. */
-#define DEFAULT_TARGET_LOAD 90
+#define DEFAULT_TARGET_LOAD 95
 static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
 static spinlock_t target_loads_lock;
 static unsigned int *target_loads = default_target_loads;
 static int ntarget_loads = ARRAY_SIZE(default_target_loads);
 
 /*
- * Frequency calculation threshold.  Avoid freq oscillations up to this
- * threshold and allow for dynamic changes above (default cpuinfo min).
-*/
-static unsigned long freq_calc_thresh;
-
-/*
  * The minimum amount of time to spend at a frequency before we can ramp down.
  */
-#define DEFAULT_MIN_SAMPLE_TIME (80 * USEC_PER_MSEC)
+#define DEFAULT_MIN_SAMPLE_TIME (20 * USEC_PER_MSEC)
 static unsigned long min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 
 /*
@@ -109,7 +107,7 @@ static unsigned long timer_rate = DEFAULT_TIMER_RATE;
  * Wait this long before raising speed above hispeed, by default a single
  * timer interval.
  */
-#define DEFAULT_ABOVE_HISPEED_DELAY DEFAULT_TIMER_RATE
+#define DEFAULT_ABOVE_HISPEED_DELAY (80 * USEC_PER_MSEC)
 static unsigned int default_above_hispeed_delay[] = {
 	DEFAULT_ABOVE_HISPEED_DELAY };
 static spinlock_t above_hispeed_delay_lock;
@@ -142,35 +140,71 @@ static unsigned int up_threshold_any_cpu_load;
 static unsigned int sync_freq;
 static unsigned int up_threshold_any_cpu_freq;
 
-/* Round to starting jiffy of next evaluation window */
-static u64 round_to_nw_start(u64 jif)
-{
-	unsigned long step = usecs_to_jiffies(timer_rate);
+static int cpufreq_governor_yankactive(struct cpufreq_policy *policy,
+		unsigned int event);
 
-	do_div(jif, step);
-	return (jif + 1) * step;
-}
+#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_YANKACTIVE
+static
+#endif
+struct cpufreq_governor cpufreq_gov_yankactive = {
+	.name = "yankactive",
+	.governor = cpufreq_governor_yankactive,
+	.max_transition_latency = 10000000,
+	.owner = THIS_MODULE,
+};
 
-static void cpufreq_interactive_timer_resched(
-	struct cpufreq_interactive_cpuinfo *pcpu)
+//static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
+//						  cputime64_t *wall)
+//{
+//	u64 idle_time;
+//	u64 cur_wall_time;
+//	u64 busy_time;
+//
+//	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
+//
+//	busy_time  = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
+//	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
+//	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
+//	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
+//	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
+//	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
+//
+//	idle_time = cur_wall_time - busy_time;
+//	if (wall)
+//		*wall = jiffies_to_usecs(cur_wall_time);
+//
+//	return jiffies_to_usecs(idle_time);
+//}
+//
+//static inline cputime64_t get_cpu_idle_time(unsigned int cpu,
+//					    cputime64_t *wall)
+//{
+//	u64 idle_time = get_cpu_idle_time_us(cpu, wall);
+//
+//	if (idle_time == -1ULL)
+//		idle_time = get_cpu_idle_time_jiffy(cpu, wall);
+//	else if (!io_is_busy)
+//		idle_time += get_cpu_iowait_time_us(cpu, wall);
+//
+//	return idle_time;
+//}
+
+static void cpufreq_yankactive_timer_resched(
+	struct cpufreq_yankactive_cpuinfo *pcpu)
 {
-	u64 expires;
+	unsigned long expires;
 	unsigned long flags;
-	u64 now = ktime_to_us(ktime_get());
 
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	pcpu->time_in_idle =
 		get_cpu_idle_time(smp_processor_id(),
-				     &pcpu->time_in_idle_timestamp, io_is_busy);
+				     &pcpu->time_in_idle_timestamp, 0);
 	pcpu->cputime_speedadj = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
-	expires = round_to_nw_start(pcpu->last_evaluated_jiffy);
+	expires = jiffies + usecs_to_jiffies(timer_rate);
 	mod_timer_pinned(&pcpu->cpu_timer, expires);
 
-	if (timer_slack_val >= 0 &&
-	    (pcpu->target_freq > pcpu->policy->min ||
-		(pcpu->target_freq == pcpu->policy->min &&
-		 now < boostpulse_endtime))) {
+	if (timer_slack_val >= 0 && pcpu->target_freq > pcpu->policy->min) {
 		expires += usecs_to_jiffies(timer_slack_val);
 		mod_timer_pinned(&pcpu->cpu_slack_timer, expires);
 	}
@@ -182,19 +216,19 @@ static void cpufreq_interactive_timer_resched(
  * The cpu_timer and cpu_slack_timer must be deactivated when calling this
  * function.
  */
-static void cpufreq_interactive_timer_start(int cpu)
+static void cpufreq_yankactive_timer_start(int cpu, int time_override)
 {
-	struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
-	u64 expires = round_to_nw_start(pcpu->last_evaluated_jiffy);
+	struct cpufreq_yankactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	unsigned long flags;
-	u64 now = ktime_to_us(ktime_get());
+	unsigned long expires;
+	if (time_override)
+		expires = jiffies + time_override;
+	else
+		expires = jiffies + usecs_to_jiffies(timer_rate);
 
 	pcpu->cpu_timer.expires = expires;
 	add_timer_on(&pcpu->cpu_timer, cpu);
-	if (timer_slack_val >= 0 &&
-	    (pcpu->target_freq > pcpu->policy->min ||
-		(pcpu->target_freq == pcpu->policy->min &&
-		 now < boostpulse_endtime))) {
+	if (timer_slack_val >= 0 && pcpu->target_freq > pcpu->policy->min) {
 		expires += usecs_to_jiffies(timer_slack_val);
 		pcpu->cpu_slack_timer.expires = expires;
 		add_timer_on(&pcpu->cpu_slack_timer, cpu);
@@ -202,7 +236,7 @@ static void cpufreq_interactive_timer_start(int cpu)
 
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	pcpu->time_in_idle =
-		get_cpu_idle_time(cpu, &pcpu->time_in_idle_timestamp, io_is_busy);
+		get_cpu_idle_time(cpu, &pcpu->time_in_idle_timestamp, 0);
 	pcpu->cputime_speedadj = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
 	spin_unlock_irqrestore(&pcpu->load_lock, flags);
@@ -250,7 +284,7 @@ static unsigned int freq_to_targetload(unsigned int freq)
  */
 
 static unsigned int choose_freq(
-	struct cpufreq_interactive_cpuinfo *pcpu, unsigned int loadadjfreq)
+	struct cpufreq_yankactive_cpuinfo *pcpu, unsigned int loadadjfreq)
 {
 	unsigned int freq = pcpu->policy->cur;
 	unsigned int prevfreq, freqmin, freqmax;
@@ -336,14 +370,17 @@ static unsigned int choose_freq(
 
 static u64 update_load(int cpu)
 {
-	struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
+	struct cpufreq_yankactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	u64 now;
 	u64 now_idle;
 	unsigned int delta_idle;
 	unsigned int delta_time;
 	u64 active_time;
+#ifdef CONFIG_SEC_PM
+	unsigned int cur_load = 0;
+#endif
 
-	now_idle = get_cpu_idle_time(cpu, &now, io_is_busy);
+	now_idle = get_cpu_idle_time(cpu, &now, 0);
 	delta_idle = (unsigned int)(now_idle - pcpu->time_in_idle);
 	delta_time = (unsigned int)(now - pcpu->time_in_idle_timestamp);
 
@@ -356,16 +393,23 @@ static u64 update_load(int cpu)
 
 	pcpu->time_in_idle = now_idle;
 	pcpu->time_in_idle_timestamp = now;
+
+#ifdef CONFIG_SEC_PM
+	cur_load = (unsigned int)(active_time * 100) / delta_time;
+	pcpu->policy->load_at_max = (cur_load * pcpu->policy->cur) /
+		pcpu->policy->cpuinfo.max_freq;
+#endif
+
 	return now;
 }
 
-static void cpufreq_interactive_timer(unsigned long data)
+static void cpufreq_yankactive_timer(unsigned long data)
 {
 	u64 now;
 	unsigned int delta_time;
 	u64 cputime_speedadj;
 	int cpu_load;
-	struct cpufreq_interactive_cpuinfo *pcpu =
+	struct cpufreq_yankactive_cpuinfo *pcpu =
 		&per_cpu(cpuinfo, data);
 	unsigned int new_freq;
 	unsigned int loadadjfreq;
@@ -375,8 +419,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	unsigned long mod_min_sample_time;
 	int i, max_load;
 	unsigned int max_freq;
-	unsigned int boosted_freq;
-	struct cpufreq_interactive_cpuinfo *picpu;
+	struct cpufreq_yankactive_cpuinfo *picpu;
 
 	if (!down_read_trylock(&pcpu->enable_sem))
 		return;
@@ -387,37 +430,32 @@ static void cpufreq_interactive_timer(unsigned long data)
 	now = update_load(data);
 	delta_time = (unsigned int)(now - pcpu->cputime_speedadj_timestamp);
 	cputime_speedadj = pcpu->cputime_speedadj;
-	pcpu->last_evaluated_jiffy = get_jiffies_64();
 	spin_unlock_irqrestore(&pcpu->load_lock, flags);
 
 	if (WARN_ON_ONCE(!delta_time))
 		goto rearm;
 
-	spin_lock_irqsave(&pcpu->target_freq_lock, flags);
 	do_div(cputime_speedadj, delta_time);
 	loadadjfreq = (unsigned int)cputime_speedadj * 100;
 	cpu_load = loadadjfreq / pcpu->target_freq;
 	pcpu->prev_load = cpu_load;
 	boosted = boost_val || now < boostpulse_endtime;
-	boosted_freq = max(hispeed_freq, pcpu->policy->min);
+
+#ifdef CONFIG_SEC_PM
+	pcpu->policy->util = cpu_load;
+#endif
 
 	if (cpu_load >= go_hispeed_load || boosted) {
-		if (pcpu->target_freq < boosted_freq) {
-			new_freq = boosted_freq;
+		if (pcpu->target_freq < hispeed_freq) {
+			new_freq = hispeed_freq;
 		} else {
 			new_freq = choose_freq(pcpu, loadadjfreq);
 
-			if (new_freq > freq_calc_thresh)
-				new_freq = pcpu->policy->max * cpu_load / 100;
-
-			if (new_freq < boosted_freq)
-				new_freq = boosted_freq;
+			if (new_freq < hispeed_freq)
+				new_freq = hispeed_freq;
 		}
 	} else {
 		new_freq = choose_freq(pcpu, loadadjfreq);
-
-		if (new_freq > freq_calc_thresh)
-			new_freq = pcpu->policy->max * cpu_load / 100;
 
 		if (sync_freq && new_freq < sync_freq) {
 
@@ -441,14 +479,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 		}
 	}
 
-	if (pcpu->target_freq >= boosted_freq &&
+	if (pcpu->target_freq >= hispeed_freq &&
 	    new_freq > pcpu->target_freq &&
 	    now - pcpu->hispeed_validate_time <
 	    freq_to_above_hispeed_delay(pcpu->target_freq)) {
-		trace_cpufreq_interactive_notyet(
+		trace_cpufreq_yankactive_notyet(
 			data, cpu_load, pcpu->target_freq,
 			pcpu->policy->cur, new_freq);
-		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 		goto rearm;
 	}
 
@@ -456,10 +493,8 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
 					   new_freq, CPUFREQ_RELATION_C,
-					   &index)) {
-		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
+					   &index))
 		goto rearm;
-	}
 
 	new_freq = pcpu->freq_table[index].frequency;
 
@@ -482,10 +517,9 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 	if (new_freq < pcpu->floor_freq) {
 		if (now - pcpu->floor_validate_time < mod_min_sample_time) {
-			trace_cpufreq_interactive_notyet(
+			trace_cpufreq_yankactive_notyet(
 				data, cpu_load, pcpu->target_freq,
 				pcpu->policy->cur, new_freq);
-			spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 			goto rearm;
 		}
 	}
@@ -493,29 +527,27 @@ static void cpufreq_interactive_timer(unsigned long data)
 	/*
 	 * Update the timestamp for checking whether speed has been held at
 	 * or above the selected frequency for a minimum of min_sample_time,
-	 * if not boosted to boosted_freq.  If boosted to boosted_freq then we
+	 * if not boosted to hispeed_freq.  If boosted to hispeed_freq then we
 	 * allow the speed to drop as soon as the boostpulse duration expires
 	 * (or the indefinite boost is turned off).
 	 */
 
-	if (!boosted || new_freq > boosted_freq) {
+	if (!boosted || new_freq > hispeed_freq) {
 		pcpu->floor_freq = new_freq;
 		pcpu->floor_validate_time = now;
 	}
 
 	if (pcpu->target_freq == new_freq) {
-		trace_cpufreq_interactive_already(
+		trace_cpufreq_yankactive_already(
 			data, cpu_load, pcpu->target_freq,
 			pcpu->policy->cur, new_freq);
-		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 		goto rearm_if_notmax;
 	}
 
-	trace_cpufreq_interactive_target(data, cpu_load, pcpu->target_freq,
+	trace_cpufreq_yankactive_target(data, cpu_load, pcpu->target_freq,
 					 pcpu->policy->cur, new_freq);
 
 	pcpu->target_freq = new_freq;
-	spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 	spin_lock_irqsave(&speedchange_cpumask_lock, flags);
 	cpumask_set_cpu(data, &speedchange_cpumask);
 	spin_unlock_irqrestore(&speedchange_cpumask_lock, flags);
@@ -531,16 +563,16 @@ rearm_if_notmax:
 
 rearm:
 	if (!timer_pending(&pcpu->cpu_timer))
-		cpufreq_interactive_timer_resched(pcpu);
+		cpufreq_yankactive_timer_resched(pcpu);
 
 exit:
 	up_read(&pcpu->enable_sem);
 	return;
 }
 
-static void cpufreq_interactive_idle_start(void)
+static void cpufreq_yankactive_idle_start(void)
 {
-	struct cpufreq_interactive_cpuinfo *pcpu =
+	struct cpufreq_yankactive_cpuinfo *pcpu =
 		&per_cpu(cpuinfo, smp_processor_id());
 	int pending;
 	u64 now;
@@ -552,12 +584,9 @@ static void cpufreq_interactive_idle_start(void)
 		return;
 	}
 
-	now = ktime_to_us(ktime_get());
 	pending = timer_pending(&pcpu->cpu_timer);
 
-	if (pcpu->target_freq > pcpu->policy->min ||
-	    (pcpu->target_freq == pcpu->policy->min &&
-	     now < boostpulse_endtime)) {
+	if (pcpu->target_freq != pcpu->policy->min) {
 		/*
 		 * Entering idle while not at lowest speed.  On some
 		 * platforms this can hold the other CPU(s) at that speed
@@ -567,7 +596,7 @@ static void cpufreq_interactive_idle_start(void)
 		 * the CPUFreq driver.
 		 */
 		if (!pending) {
-			cpufreq_interactive_timer_resched(pcpu);
+			cpufreq_yankactive_timer_resched(pcpu);
 
 			now = ktime_to_us(ktime_get());
 			if ((pcpu->policy->cur == pcpu->policy->max) &&
@@ -582,9 +611,9 @@ static void cpufreq_interactive_idle_start(void)
 	up_read(&pcpu->enable_sem);
 }
 
-static void cpufreq_interactive_idle_end(void)
+static void cpufreq_yankactive_idle_end(void)
 {
-	struct cpufreq_interactive_cpuinfo *pcpu =
+	struct cpufreq_yankactive_cpuinfo *pcpu =
 		&per_cpu(cpuinfo, smp_processor_id());
 
 	if (!down_read_trylock(&pcpu->enable_sem))
@@ -596,22 +625,22 @@ static void cpufreq_interactive_idle_end(void)
 
 	/* Arm the timer for 1-2 ticks later if not already. */
 	if (!timer_pending(&pcpu->cpu_timer)) {
-		cpufreq_interactive_timer_resched(pcpu);
+		cpufreq_yankactive_timer_resched(pcpu);
 	} else if (time_after_eq(jiffies, pcpu->cpu_timer.expires)) {
 		del_timer(&pcpu->cpu_timer);
 		del_timer(&pcpu->cpu_slack_timer);
-		cpufreq_interactive_timer(smp_processor_id());
+		cpufreq_yankactive_timer(smp_processor_id());
 	}
 
 	up_read(&pcpu->enable_sem);
 }
 
-static int cpufreq_interactive_speedchange_task(void *data)
+static int cpufreq_yankactive_speedchange_task(void *data)
 {
 	unsigned int cpu;
 	cpumask_t tmp_mask;
 	unsigned long flags;
-	struct cpufreq_interactive_cpuinfo *pcpu;
+	struct cpufreq_yankactive_cpuinfo *pcpu;
 
 	while (1) {
 		set_current_state(TASK_INTERRUPTIBLE);
@@ -646,7 +675,7 @@ static int cpufreq_interactive_speedchange_task(void *data)
 			}
 
 			for_each_cpu(j, pcpu->policy->cpus) {
-				struct cpufreq_interactive_cpuinfo *pjcpu =
+				struct cpufreq_yankactive_cpuinfo *pjcpu =
 					&per_cpu(cpuinfo, j);
 
 				if (pjcpu->target_freq > max_freq)
@@ -657,7 +686,7 @@ static int cpufreq_interactive_speedchange_task(void *data)
 				__cpufreq_driver_target(pcpu->policy,
 							max_freq,
 							CPUFREQ_RELATION_H);
-			trace_cpufreq_interactive_setspeed(cpu,
+			trace_cpufreq_yankactive_setspeed(cpu,
 						     pcpu->target_freq,
 						     pcpu->policy->cur);
 
@@ -668,19 +697,18 @@ static int cpufreq_interactive_speedchange_task(void *data)
 	return 0;
 }
 
-static void cpufreq_interactive_boost(void)
+static void cpufreq_yankactive_boost(void)
 {
 	int i;
 	int anyboost = 0;
-	unsigned long flags[2];
-	struct cpufreq_interactive_cpuinfo *pcpu;
+	unsigned long flags;
+	struct cpufreq_yankactive_cpuinfo *pcpu;
 
-	spin_lock_irqsave(&speedchange_cpumask_lock, flags[0]);
+	spin_lock_irqsave(&speedchange_cpumask_lock, flags);
 
 	for_each_online_cpu(i) {
 		pcpu = &per_cpu(cpuinfo, i);
 
-		spin_lock_irqsave(&pcpu->target_freq_lock, flags[1]);
 		if (pcpu->target_freq < hispeed_freq) {
 			pcpu->target_freq = hispeed_freq;
 			cpumask_set_cpu(i, &speedchange_cpumask);
@@ -696,20 +724,19 @@ static void cpufreq_interactive_boost(void)
 
 		pcpu->floor_freq = hispeed_freq;
 		pcpu->floor_validate_time = ktime_to_us(ktime_get());
-		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags[1]);
 	}
 
-	spin_unlock_irqrestore(&speedchange_cpumask_lock, flags[0]);
+	spin_unlock_irqrestore(&speedchange_cpumask_lock, flags);
 
 	if (anyboost)
 		wake_up_process(speedchange_task);
 }
 
-static int cpufreq_interactive_notifier(
+static int cpufreq_yankactive_notifier(
 	struct notifier_block *nb, unsigned long val, void *data)
 {
 	struct cpufreq_freqs *freq = data;
-	struct cpufreq_interactive_cpuinfo *pcpu;
+	struct cpufreq_yankactive_cpuinfo *pcpu;
 	int cpu;
 	unsigned long flags;
 
@@ -723,7 +750,7 @@ static int cpufreq_interactive_notifier(
 		}
 
 		for_each_cpu(cpu, pcpu->policy->cpus) {
-			struct cpufreq_interactive_cpuinfo *pjcpu =
+			struct cpufreq_yankactive_cpuinfo *pjcpu =
 				&per_cpu(cpuinfo, cpu);
 			if (cpu != freq->cpu) {
 				if (!down_read_trylock(&pjcpu->enable_sem))
@@ -746,7 +773,7 @@ static int cpufreq_interactive_notifier(
 }
 
 static struct notifier_block cpufreq_notifier_block = {
-	.notifier_call = cpufreq_interactive_notifier,
+	.notifier_call = cpufreq_yankactive_notifier,
 };
 
 static unsigned int *get_tokenized_data(const char *buf, int *num_tokens)
@@ -807,7 +834,7 @@ static ssize_t show_target_loads(
 		ret += sprintf(buf + ret, "%u%s", target_loads[i],
 			       i & 0x1 ? ":" : " ");
 
-	sprintf(buf + ret - 1, "\n");
+	ret += sprintf(buf + --ret, "\n");
 	spin_unlock_irqrestore(&target_loads_lock, flags);
 	return ret;
 }
@@ -837,28 +864,6 @@ static struct global_attr target_loads_attr =
 	__ATTR(target_loads, S_IRUGO | S_IWUSR,
 		show_target_loads, store_target_loads);
 
-static ssize_t show_freq_calc_thresh(struct kobject *kobj,
-				     struct attribute *attr, char *buf)
-{
-	return sprintf(buf, "%lu\n", freq_calc_thresh);
-}
-
-static ssize_t store_freq_calc_thresh(struct kobject *kobj,
-			struct attribute *attr, const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-
-	ret = strict_strtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	freq_calc_thresh = val;
-	return count;
-}
-
-static struct global_attr freq_calc_thresh_attr = __ATTR(freq_calc_thresh, 0644,
-		show_freq_calc_thresh, store_freq_calc_thresh);
-
 static ssize_t show_above_hispeed_delay(
 	struct kobject *kobj, struct attribute *attr, char *buf)
 {
@@ -872,7 +877,7 @@ static ssize_t show_above_hispeed_delay(
 		ret += sprintf(buf + ret, "%u%s", above_hispeed_delay[i],
 			       i & 0x1 ? ":" : " ");
 
-	sprintf(buf + ret - 1, "\n");
+	ret += sprintf(buf + --ret, "\n");
 	spin_unlock_irqrestore(&above_hispeed_delay_lock, flags);
 	return ret;
 }
@@ -1058,10 +1063,10 @@ static ssize_t store_boost(struct kobject *kobj, struct attribute *attr,
 	boost_val = val;
 
 	if (boost_val) {
-		trace_cpufreq_interactive_boost("on");
-		cpufreq_interactive_boost();
+		trace_cpufreq_yankactive_boost("on");
+		cpufreq_yankactive_boost();
 	} else {
-		trace_cpufreq_interactive_unboost("off");
+		trace_cpufreq_yankactive_unboost("off");
 	}
 
 	return count;
@@ -1080,8 +1085,8 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 		return ret;
 
 	boostpulse_endtime = ktime_to_us(ktime_get()) + boostpulse_duration_val;
-	trace_cpufreq_interactive_boost("pulse");
-	cpufreq_interactive_boost();
+	trace_cpufreq_yankactive_boost("pulse");
+	cpufreq_yankactive_boost();
 	return count;
 }
 
@@ -1203,9 +1208,8 @@ static struct global_attr up_threshold_any_cpu_freq_attr =
 		show_up_threshold_any_cpu_freq,
 				store_up_threshold_any_cpu_freq);
 
-static struct attribute *interactive_attributes[] = {
+static struct attribute *yankactive_attributes[] = {
 	&target_loads_attr.attr,
-	&freq_calc_thresh_attr.attr,
 	&above_hispeed_delay_attr.attr,
 	&hispeed_freq_attr.attr,
 	&go_hispeed_load_attr.attr,
@@ -1223,40 +1227,39 @@ static struct attribute *interactive_attributes[] = {
 	NULL,
 };
 
-static struct attribute_group interactive_attr_group = {
-	.attrs = interactive_attributes,
-	.name = "interactive_pro",
+static struct attribute_group yankactive_attr_group = {
+	.attrs = yankactive_attributes,
+	.name = "yankactive",
 };
 
-static int cpufreq_interactive_idle_notifier(struct notifier_block *nb,
+static int cpufreq_yankactive_idle_notifier(struct notifier_block *nb,
 					     unsigned long val,
 					     void *data)
 {
 	switch (val) {
 	case IDLE_START:
-		cpufreq_interactive_idle_start();
+		cpufreq_yankactive_idle_start();
 		break;
 	case IDLE_END:
-		cpufreq_interactive_idle_end();
+		cpufreq_yankactive_idle_end();
 		break;
 	}
 
 	return 0;
 }
 
-static struct notifier_block cpufreq_interactive_idle_nb = {
-	.notifier_call = cpufreq_interactive_idle_notifier,
+static struct notifier_block cpufreq_yankactive_idle_nb = {
+	.notifier_call = cpufreq_yankactive_idle_notifier,
 };
 
-static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
+static int cpufreq_governor_yankactive(struct cpufreq_policy *policy,
 		unsigned int event)
 {
 	int rc;
 	unsigned int j;
-	struct cpufreq_interactive_cpuinfo *pcpu;
+	struct cpufreq_yankactive_cpuinfo *pcpu;
 	struct cpufreq_frequency_table *freq_table;
-	unsigned long flags;
-	unsigned int anyboost;
+	unsigned long expire_time;
 
 	switch (event) {
 	case CPUFREQ_GOV_START:
@@ -1265,8 +1268,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		freq_table =
 			cpufreq_frequency_get_table(policy->cpu);
 		if (!hispeed_freq)
-			hispeed_freq = policy->max;
-		freq_calc_thresh = policy->cpuinfo.min_freq;
+			hispeed_freq = DEFAULT_HISPEED_FREQ;
 
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
@@ -1278,12 +1280,10 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 				ktime_to_us(ktime_get());
 			pcpu->hispeed_validate_time =
 				pcpu->floor_validate_time;
-			pcpu->max_freq = policy->max;
 			down_write(&pcpu->enable_sem);
 			del_timer_sync(&pcpu->cpu_timer);
 			del_timer_sync(&pcpu->cpu_slack_timer);
-			pcpu->last_evaluated_jiffy = get_jiffies_64();
-			cpufreq_interactive_timer_start(j);
+			cpufreq_yankactive_timer_start(j, 0);
 			pcpu->governor_enabled = 1;
 			up_write(&pcpu->enable_sem);
 		}
@@ -1298,13 +1298,13 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		}
 
 		rc = sysfs_create_group(cpufreq_global_kobject,
-				&interactive_attr_group);
+				&yankactive_attr_group);
 		if (rc) {
 			mutex_unlock(&gov_lock);
 			return rc;
 		}
 
-		idle_notifier_register(&cpufreq_interactive_idle_nb);
+		idle_notifier_register(&cpufreq_yankactive_idle_nb);
 		cpufreq_register_notifier(
 			&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
 		mutex_unlock(&gov_lock);
@@ -1329,9 +1329,9 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 
 		cpufreq_unregister_notifier(
 			&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
-		idle_notifier_unregister(&cpufreq_interactive_idle_nb);
+		idle_notifier_unregister(&cpufreq_yankactive_idle_nb);
 		sysfs_remove_group(cpufreq_global_kobject,
-				&interactive_attr_group);
+				&yankactive_attr_group);
 		mutex_unlock(&gov_lock);
 
 		break;
@@ -1346,85 +1346,76 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
 
-			down_read(&pcpu->enable_sem);
+			/* hold write semaphore to avoid race */
+			down_write(&pcpu->enable_sem);
 			if (pcpu->governor_enabled == 0) {
-				up_read(&pcpu->enable_sem);
+				up_write(&pcpu->enable_sem);
 				continue;
 			}
 
-			spin_lock_irqsave(&pcpu->target_freq_lock, flags);
-			if (policy->max < pcpu->target_freq) {
+			/* update target_freq firstly */
+			if (policy->max < pcpu->target_freq)
 				pcpu->target_freq = policy->max;
-			} else if (policy->min >= pcpu->target_freq) {
-				pcpu->target_freq = policy->min;
-				anyboost = 1;
-			}
-
-			spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
-			up_read(&pcpu->enable_sem);
-
-			/* Reschedule timer only if policy->max is raised.
-			 * Delete the timers, else the timer callback may
-			 * return without re-arm the timer when failed
-			 * acquire the semaphore. This race may cause timer
-			 * stopped unexpectedly.
+			/*
+			 * Delete and reschedule timer.
+			 * Else the timer callback may return without
+			 * re-arming the timer when it fails to acquire
+			 * the semaphore. This race condition may cause the
+			 * timer to stop unexpectedly.
 			 */
+			del_timer_sync(&pcpu->cpu_timer);
+			del_timer_sync(&pcpu->cpu_slack_timer);
+			if (policy->min >= pcpu->target_freq) {
+				pcpu->target_freq = policy->min;
+				/*
+				 * Reschedule timer.
+				 * The governor needs more time to evaluate
+				 * the load after changing policy parameters.
+				 */
+				cpufreq_yankactive_timer_start(j, 0);
+			} else {
+				/*
+				 * Reschedule timer with variable duration.
+				 * No boost was applied so the governor
+				 * doesn't need extra time to evaluate load.
+				 * The timer can be set to fire quicker if it
+				 * was already going to expire soon.
+				 */
+				expire_time = pcpu->cpu_timer.expires - jiffies;
+				expire_time = min(usecs_to_jiffies(timer_rate),
+						  expire_time);
+				expire_time = max(MIN_TIMER_JIFFIES,
+						  expire_time);
 
-			if (policy->max > pcpu->max_freq) {
-				down_write(&pcpu->enable_sem);
-				del_timer_sync(&pcpu->cpu_timer);
-				del_timer_sync(&pcpu->cpu_slack_timer);
-				cpufreq_interactive_timer_start(j);
-				up_write(&pcpu->enable_sem);
-			} else if (anyboost) {
-				u64 now = ktime_to_us(ktime_get());
-
-				cpumask_set_cpu(j, &speedchange_cpumask);
-				pcpu->hispeed_validate_time = now;
-				pcpu->floor_freq = policy->min;
-				pcpu->floor_validate_time = now;
+				cpufreq_yankactive_timer_start(j, expire_time);
 			}
-
-			pcpu->max_freq = policy->max;
 			pcpu->limits_changed = true;
+			up_write(&pcpu->enable_sem);
 		}
-		if (anyboost)
-			wake_up_process(speedchange_task);
-
 		break;
 	}
 	return 0;
 }
 
-#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
-static
-#endif
-struct cpufreq_governor cpufreq_gov_interactive = {
-	.name = "interactive_pro",
-	.governor = cpufreq_governor_interactive,
-	.max_transition_latency = 10000000,
-	.owner = THIS_MODULE,
-};
-
-static void cpufreq_interactive_nop_timer(unsigned long data)
+static void cpufreq_yankactive_nop_timer(unsigned long data)
 {
 }
 
-static int __init cpufreq_interactive_init(void)
+static int __init cpufreq_yankactive_init(void)
 {
 	unsigned int i;
-	struct cpufreq_interactive_cpuinfo *pcpu;
+	struct cpufreq_yankactive_cpuinfo *pcpu;
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
 
 	/* Initalize per-cpu timers */
 	for_each_possible_cpu(i) {
 		pcpu = &per_cpu(cpuinfo, i);
 		init_timer_deferrable(&pcpu->cpu_timer);
-		pcpu->cpu_timer.function = cpufreq_interactive_timer;
+		pcpu->cpu_timer.function = cpufreq_yankactive_timer;
 		pcpu->cpu_timer.data = i;
 		init_timer(&pcpu->cpu_slack_timer);
-		pcpu->cpu_slack_timer.function = cpufreq_interactive_nop_timer;
+		pcpu->cpu_slack_timer.function = cpufreq_yankactive_nop_timer;
 		spin_lock_init(&pcpu->load_lock);
-		spin_lock_init(&pcpu->target_freq_lock);
 		init_rwsem(&pcpu->enable_sem);
 	}
 
@@ -1433,35 +1424,36 @@ static int __init cpufreq_interactive_init(void)
 	spin_lock_init(&above_hispeed_delay_lock);
 	mutex_init(&gov_lock);
 	speedchange_task =
-		kthread_create(cpufreq_interactive_speedchange_task, NULL,
-			       "cfinteractive");
+		kthread_create(cpufreq_yankactive_speedchange_task, NULL,
+			       "cfyankactive");
 	if (IS_ERR(speedchange_task))
 		return PTR_ERR(speedchange_task);
 
+	sched_setscheduler_nocheck(speedchange_task, SCHED_FIFO, &param);
 	get_task_struct(speedchange_task);
 
 	/* NB: wake up so the thread does not look hung to the freezer */
 	wake_up_process(speedchange_task);
 
-	return cpufreq_register_governor(&cpufreq_gov_interactive);
+	return cpufreq_register_governor(&cpufreq_gov_yankactive);
 }
 
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
-fs_initcall(cpufreq_interactive_init);
+#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_YANKACTIVE
+fs_initcall(cpufreq_yankactive_init);
 #else
-module_init(cpufreq_interactive_init);
+module_init(cpufreq_yankactive_init);
 #endif
 
-static void __exit cpufreq_interactive_exit(void)
+static void __exit cpufreq_yankactive_exit(void)
 {
-	cpufreq_unregister_governor(&cpufreq_gov_interactive);
+	cpufreq_unregister_governor(&cpufreq_gov_yankactive);
 	kthread_stop(speedchange_task);
 	put_task_struct(speedchange_task);
 }
 
-module_exit(cpufreq_interactive_exit);
+module_exit(cpufreq_yankactive_exit);
 
 MODULE_AUTHOR("Mike Chan <mike@android.com>");
-MODULE_DESCRIPTION("'cpufreq_interactive' - A cpufreq governor for "
+MODULE_DESCRIPTION("'cpufreq_yankactive' - A cpufreq governor for "
 	"Latency sensitive workloads");
 MODULE_LICENSE("GPL");

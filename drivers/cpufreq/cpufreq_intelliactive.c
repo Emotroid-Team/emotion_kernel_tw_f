@@ -287,7 +287,7 @@ static unsigned int choose_freq(
 
 		if (cpufreq_frequency_table_target(
 			    pcpu->policy, pcpu->freq_table, loadadjfreq / tl,
-			    CPUFREQ_RELATION_L, &index))
+			    CPUFREQ_RELATION_C, &index))
 			break;
 		freq = pcpu->freq_table[index].frequency;
 
@@ -329,7 +329,7 @@ static unsigned int choose_freq(
 				 */
 				if (cpufreq_frequency_table_target(
 					    pcpu->policy, pcpu->freq_table,
-					    freqmin + 1, CPUFREQ_RELATION_L,
+					    freqmin + 1, CPUFREQ_RELATION_C,
 					    &index))
 					break;
 				freq = pcpu->freq_table[index].frequency;
@@ -485,7 +485,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	pcpu->hispeed_validate_time = now;
 
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
-					   new_freq, CPUFREQ_RELATION_L,
+					   new_freq, CPUFREQ_RELATION_C,
 					   &index))
 		goto rearm;
 
@@ -852,7 +852,7 @@ static ssize_t show_target_loads(
 		ret += sprintf(buf + ret, "%u%s", target_loads[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret = sprintf(buf + --ret, "\n");
+	ret += sprintf(buf + --ret, "\n");
 	spin_unlock_irqrestore(&target_loads_lock, flags);
 	return ret;
 }
@@ -895,7 +895,7 @@ static ssize_t show_above_hispeed_delay(
 		ret += sprintf(buf + ret, "%u%s", above_hispeed_delay[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret = sprintf(buf + --ret, "\n");
+	ret += sprintf(buf + --ret, "\n");
 	spin_unlock_irqrestore(&above_hispeed_delay_lock, flags);
 	return ret;
 }
@@ -1439,7 +1439,7 @@ static int cpufreq_governor_intelliactive(struct cpufreq_policy *policy,
 					policy->max, CPUFREQ_RELATION_H);
 		else if (policy->min > policy->cur)
 			__cpufreq_driver_target(policy,
-					policy->min, CPUFREQ_RELATION_L);
+					policy->min, CPUFREQ_RELATION_C);
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
 
