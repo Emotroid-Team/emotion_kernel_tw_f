@@ -48,7 +48,7 @@ static int hfpll_uv[] = {
 static DEFINE_VDD_REGULATORS(vdd_hfpll, ARRAY_SIZE(hfpll_uv)/2, 2,
 				hfpll_uv, NULL);
 
-static unsigned long hfpll_fmax[] = { 0, 998400000, 1996800000, 2900000000UL };
+static unsigned long hfpll_fmax[] = { 0, 998400000, 1996800000, 3100000000UL };
 
 static struct hfpll_data hdata = {
 	.mode_offset = 0x0,
@@ -62,7 +62,7 @@ static struct hfpll_data hdata = {
 	.user_val = 0x8,
 	.low_vco_max_rate = 1248000000,
 	.min_rate = 537600000UL,
-	.max_rate = 2900000000UL,
+	.max_rate = 3100000000UL,
 };
 
 static struct hfpll_clk hfpll0_clk = {
@@ -707,8 +707,8 @@ static void krait_update_uv(int *uv, int num, int boost_uv)
 
 #ifdef CONFIG_CPU_VOLTAGE_CONTROL
 
-#define CPU_VDD_MIN	 600
-#define CPU_VDD_MAX	1800
+#define CPU_VDD_MIN	 500
+#define CPU_VDD_MAX	1450
 
 extern bool is_used_by_scaling(unsigned int freq);
 
@@ -726,7 +726,7 @@ ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
         return -EINVAL;
     
     /* format UV_mv table */
-    for (i = 0; i < num_levels; i++) {
+    for (i = 1; i < num_levels; i++) {
         /* show only those used in scaling */
         if (!is_used_by_scaling(freq = cpu_clk[0]->fmax[i] / 1000))
             continue;
@@ -751,7 +751,7 @@ ssize_t store_UV_mV_table(struct cpufreq_policy *policy, char *buf,
     if (num_levels < 0)
         return -1;
     
-    for (i = 0; i < num_levels; i++) {
+    for (i = 1; i < num_levels; i++) {
         if (!is_used_by_scaling(cpu_clk[0]->fmax[i] / 1000))
             continue;
         
