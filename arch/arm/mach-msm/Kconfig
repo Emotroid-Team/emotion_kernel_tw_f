@@ -1871,4 +1871,13 @@ config MMI_SOC_INFO
 	bool "Motorola Mobility SOC Info"
 	help
 	  Provide mechanism to export MSM SOC info.
+
+config MSM_HOTPLUG
+	bool "MSM hotplug driver"
+	depends on HOTPLUG_CPU
+	default y
+	help
+	  The MSM hotplug driver controls on-/offlining of additional cores based
+	  on current cpu load.
+
 endif
