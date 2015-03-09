@@ -336,8 +336,9 @@ int pstore_mkfile(enum pstore_type_id type, char *psname, u64 id, int count,
 
 	mutex_lock(&root->d_inode->i_mutex);
 
+	rc = -ENOSPC;
 	dentry = d_alloc_name(root, name);
-	if (!dentry)
+	if (IS_ERR(dentry))
 		goto fail_lockedalloc;
 
 	memcpy(private->data, data, size);
