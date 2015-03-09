@@ -543,9 +543,6 @@ isert_connected_handler(struct rdma_cm_id *cma_id)
 {
 	struct isert_conn *isert_conn = cma_id->context;
 
-	pr_info("conn %p\n", isert_conn);
-
-	isert_conn->state = ISER_CONN_UP;
 	kref_get(&isert_conn->conn_kref);
 }
 
@@ -572,9 +569,8 @@ isert_put_conn(struct isert_conn *isert_conn)
  * @isert_conn: isert connection struct
  *
  * Notes:
- * In case the connection state is FULL_FEATURE, move state
+ * In case the connection state is UP, move state
  * to TEMINATING and start teardown sequence (rdma_disconnect).
- * In case the connection state is UP, complete flush as well.
  *
  * This routine must be called with conn_mutex held. Thus it is
  * safe to call multiple times.
@@ -584,29 +580,30 @@ isert_conn_terminate(struct isert_conn *isert_conn)
 {
 	int err;
 
-	switch (isert_conn->state) {
-	case ISER_CONN_TERMINATING:
-		break;
-	case ISER_CONN_UP:
-		/*
-		 * No flush completions will occur as we didn't
-		 * get to ISER_CONN_FULL_FEATURE yet, complete
-		 * to allow teardown progress.
-		 */
-		complete(&isert_conn->conn_wait_comp_err);
-	case ISER_CONN_FULL_FEATURE: /* FALLTHRU */
+	if (isert_conn->state == ISER_CONN_UP) {
+		isert_conn->state = ISER_CONN_TERMINATING;
 		pr_info("Terminating conn %p state %d\n",
 			   isert_conn, isert_conn->state);
-		isert_conn->state = ISER_CONN_TERMINATING;
 		err = rdma_disconnect(isert_conn->conn_cm_id);
 		if (err)
 			pr_warn("Failed rdma_disconnect isert_conn %p\n",
 				   isert_conn);
-		break;
-	default:
-		pr_warn("conn %p teminating in state %d\n",
-			   isert_conn, isert_conn->state);
 	}
+}
+
+static void
+isert_disconnect_work(struct work_struct *work)
+{
+	struct isert_conn *isert_conn = container_of(work,
+				struct isert_conn, conn_logout_work);
+
+	pr_debug("isert_disconnect_work(): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+	mutex_lock(&isert_conn->conn_mutex);
+	isert_conn_terminate(isert_conn);
+	mutex_unlock(&isert_conn->conn_mutex);
+
+	pr_info("conn %p completing conn_wait\n", isert_conn);
+	complete(&isert_conn->conn_wait);
 }
 
 static int
@@ -635,12 +632,8 @@ isert_np_cma_handler(struct isert_np *isert_np,
 
 	isert_conn = (struct isert_conn *)cma_id->context;
 
-	mutex_lock(&isert_conn->conn_mutex);
-	isert_conn_terminate(isert_conn);
-	mutex_unlock(&isert_conn->conn_mutex);
-
-	pr_info("conn %p completing conn_wait\n", isert_conn);
-	complete(&isert_conn->conn_wait);
+	INIT_WORK(&isert_conn->conn_logout_work, isert_disconnect_work);
+	schedule_work(&isert_conn->conn_logout_work);
 
 	return 0;
 }
@@ -883,8 +876,7 @@ isert_put_login_tx(struct iscsi_conn *conn, struct iscsi_login *login,
 			if (ret)
 				return ret;
 
-			/* Now we are in FULL_FEATURE phase */
-			isert_conn->state = ISER_CONN_FULL_FEATURE;
+			isert_conn->state = ISER_CONN_UP;
 			goto post_send;
 		}
 
