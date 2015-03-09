@@ -564,33 +564,6 @@ isert_put_conn(struct isert_conn *isert_conn)
 	kref_put(&isert_conn->conn_kref, isert_release_conn_kref);
 }
 
-/**
- * isert_conn_terminate() - Initiate connection termination
- * @isert_conn: isert connection struct
- *
- * Notes:
- * In case the connection state is UP, move state
- * to TEMINATING and start teardown sequence (rdma_disconnect).
- *
- * This routine must be called with conn_mutex held. Thus it is
- * safe to call multiple times.
- */
-static void
-isert_conn_terminate(struct isert_conn *isert_conn)
-{
-	int err;
-
-	if (isert_conn->state == ISER_CONN_UP) {
-		isert_conn->state = ISER_CONN_TERMINATING;
-		pr_info("Terminating conn %p state %d\n",
-			   isert_conn, isert_conn->state);
-		err = rdma_disconnect(isert_conn->conn_cm_id);
-		if (err)
-			pr_warn("Failed rdma_disconnect isert_conn %p\n",
-				   isert_conn);
-	}
-}
-
 static void
 isert_disconnect_work(struct work_struct *work)
 {
@@ -599,16 +572,34 @@ isert_disconnect_work(struct work_struct *work)
 
 	pr_debug("isert_disconnect_work(): >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 	mutex_lock(&isert_conn->conn_mutex);
-	isert_conn_terminate(isert_conn);
+	if (isert_conn->state == ISER_CONN_UP)
+		isert_conn->state = ISER_CONN_TERMINATING;
+
+	if (isert_conn->post_recv_buf_count == 0 &&
+	    atomic_read(&isert_conn->post_send_buf_count) == 0) {
+		mutex_unlock(&isert_conn->conn_mutex);
+		goto wake_up;
+	}
+	if (!isert_conn->conn_cm_id) {
+		mutex_unlock(&isert_conn->conn_mutex);
+		isert_put_conn(isert_conn);
+		return;
+	}
+
+	if (isert_conn->disconnect) {
+		/* Send DREQ/DREP towards our initiator */
+		rdma_disconnect(isert_conn->conn_cm_id);
+	}
+
 	mutex_unlock(&isert_conn->conn_mutex);
 
-	pr_info("conn %p completing conn_wait\n", isert_conn);
+wake_up:
 	complete(&isert_conn->conn_wait);
 }
 
 static int
-isert_np_cma_handler(struct isert_np *isert_np,
-		     enum rdma_cm_event_type event)
+
+isert_disconnected_handler(struct rdma_cm_id *cma_id, bool disconnect)
 {
 	struct isert_conn *isert_conn;
 
@@ -632,24 +623,18 @@ isert_np_cma_handler(struct isert_np *isert_np,
 
 	isert_conn = (struct isert_conn *)cma_id->context;
 
+	isert_conn->disconnect = disconnect;
 	INIT_WORK(&isert_conn->conn_logout_work, isert_disconnect_work);
 	schedule_work(&isert_conn->conn_logout_work);
 
 	return 0;
 }
 
-static void
-isert_connect_error(struct rdma_cm_id *cma_id)
-{
-	struct isert_conn *isert_conn = (struct isert_conn *)cma_id->context;
-
-	isert_put_conn(isert_conn);
-}
-
 static int
 isert_cma_handler(struct rdma_cm_id *cma_id, struct rdma_cm_event *event)
 {
 	int ret = 0;
+	bool disconnect = false;
 
 	pr_debug("isert_cma_handler: event %d status %d conn %p id %p\n",
 		 event->event, event->status, cma_id->context, cma_id);
@@ -667,14 +652,12 @@ isert_cma_handler(struct rdma_cm_id *cma_id, struct rdma_cm_event *event)
 	case RDMA_CM_EVENT_ADDR_CHANGE:    /* FALLTHRU */
 	case RDMA_CM_EVENT_DISCONNECTED:   /* FALLTHRU */
 	case RDMA_CM_EVENT_DEVICE_REMOVAL: /* FALLTHRU */
+		disconnect = true;
 	case RDMA_CM_EVENT_TIMEWAIT_EXIT:  /* FALLTHRU */
-		ret = isert_disconnected_handler(cma_id, event->event);
+
+		ret = isert_disconnected_handler(cma_id, disconnect);
 		break;
-	case RDMA_CM_EVENT_REJECTED:       /* FALLTHRU */
-	case RDMA_CM_EVENT_UNREACHABLE:    /* FALLTHRU */
 	case RDMA_CM_EVENT_CONNECT_ERROR:
-		isert_connect_error(cma_id);
-		break;
 	default:
 		pr_err("Unhandled RDMA CMA event: %d\n", event->event);
 		break;
@@ -1525,7 +1508,7 @@ isert_cq_rx_comp_err(struct isert_conn *isert_conn)
 		msleep(3000);
 
 	mutex_lock(&isert_conn->conn_mutex);
-	isert_conn_terminate(isert_conn);
+	isert_conn->state = ISER_CONN_DOWN;
 	mutex_unlock(&isert_conn->conn_mutex);
 
 	iscsit_cause_connection_reinstatement(isert_conn->conn, 0);
@@ -2331,6 +2314,10 @@ static void isert_wait_conn(struct iscsi_conn *conn)
 	pr_debug("isert_wait_conn: Starting \n");
 
 	mutex_lock(&isert_conn->conn_mutex);
+	if (isert_conn->conn_cm_id) {
+		pr_debug("Calling rdma_disconnect from isert_wait_conn\n");
+		rdma_disconnect(isert_conn->conn_cm_id);
+	}
 	/*
 	 * Only wait for conn_wait_comp_err if the isert_conn made it
 	 * into full feature phase..
@@ -2339,17 +2326,13 @@ static void isert_wait_conn(struct iscsi_conn *conn)
 		mutex_unlock(&isert_conn->conn_mutex);
 		return;
 	}
-	isert_conn_terminate(isert_conn);
+	if (isert_conn->state == ISER_CONN_UP)
+		isert_conn->state = ISER_CONN_TERMINATING;
 	mutex_unlock(&isert_conn->conn_mutex);
 
 	wait_for_completion(&isert_conn->conn_wait_comp_err);
+
 	wait_for_completion(&isert_conn->conn_wait);
-
-	mutex_lock(&isert_conn->conn_mutex);
-	isert_conn->state = ISER_CONN_DOWN;
-	mutex_unlock(&isert_conn->conn_mutex);
-
-	pr_info("Destroying conn %p\n", isert_conn);
 	isert_put_conn(isert_conn);
 }
 
