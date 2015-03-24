@@ -1,3 +1,8 @@
+#Build PLC
+CONFIG_CROSS_COMPILE="/home/placiano/Android/toolchain/bin/arm-cortex_a15-linux-gnueabihf-"
+CONFIG_LOCALVERSION="-$KERNEL_VERSION"
+# CONFIG_LOCALVERSION_AUTO is not set
+
 # CONFIG_ARM_PATCH_PHYS_VIRT is not set
 CONFIG_DEFERRED_INITCALLS=y
 CONFIG_SYSVIPC=y
