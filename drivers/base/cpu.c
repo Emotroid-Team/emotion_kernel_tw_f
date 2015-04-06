@@ -131,13 +131,13 @@ static ssize_t show_online_control(struct device *dev,
 	switch (online_control_mode[cpu->dev.id])
 	{
 		case ONL_CONT_MODE_SYSFS:
-			return sprintf(buf, "0: sysfs controlled\n");
+			return sprintf(buf, "0\n");
 			break;
 		case ONL_CONT_MODE_ONLINE:
-			return sprintf(buf, "1: forced online\n");
+			return sprintf(buf, "1\n");
 			break;
 		case ONL_CONT_MODE_OFFLINE:
-			return sprintf(buf, "2: forced offline\n");
+			return sprintf(buf, "2\n");
 			break;
 	}
 	
