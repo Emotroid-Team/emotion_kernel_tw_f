@@ -161,6 +161,7 @@ export srctree objtree VPATH
 # Testflags for GCC 4.9.3 cortex_a15
 GCC_4.9.3_M = -munaligned-access -fno-pic -mfpu=neon-vfpv4
 GCC_4.9.3_K = -munaligned-access -mfpu=neon-vfpv4
+GCC_4.9.3_K_G = -munaligned-access -mfpu=neon-vfpv4 -fgraphite -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
 
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
 # first, and if a usermode build is happening, the "ARCH=um" on the command
@@ -357,7 +358,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   = $(GCC_4.9.3_M)
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  = --strip-debug
-CFLAGS_KERNEL	= $(GCC_4.9.3_K)
+CFLAGS_KERNEL	= $(GCC_4.9.3_K_G)
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
