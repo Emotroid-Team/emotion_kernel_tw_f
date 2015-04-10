@@ -100,16 +100,16 @@ static bool has_intersects_mems_allowed(struct task_struct *tsk,
  */
 struct task_struct *find_lock_task_mm(struct task_struct *p)
 {
-	struct task_struct *t;
+	struct task_struct *t = p;
 
 	rcu_read_lock();
 
-	for_each_thread(p, t) {
+	do {
 		task_lock(t);
 		if (likely(t->mm))
 			goto found;
 		task_unlock(t);
-	}
+	} while_each_thread(p, t);
 	t = NULL;
 found:
 	rcu_read_unlock();
@@ -318,7 +318,7 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
 #endif
 
 	rcu_read_lock();
-	for_each_process_thread(g, p) {
+	do_each_thread(g, p) {
 		unsigned int points;
 #ifdef CONFIG_OOM_SCAN_WA_PREVENT_WRONG_SEARCH
 		skip_search_thread = false;
@@ -447,7 +447,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 {
 	struct task_struct *victim = p;
 	struct task_struct *child;
-	struct task_struct *t;
+	struct task_struct *t = p;
 	struct mm_struct *mm;
 	unsigned int victim_points = 0;
 	static DEFINE_RATELIMIT_STATE(oom_rs, DEFAULT_RATELIMIT_INTERVAL,
@@ -478,7 +478,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 	 * still freeing memory.
 	 */
 	read_lock(&tasklist_lock);
-	for_each_thread(p, t) {
+	do {
 		list_for_each_entry(child, &t->children, sibling) {
 			unsigned int child_points;
 
@@ -496,7 +496,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 				get_task_struct(victim);
 			}
 		}
-	}
+	} while_each_thread(p, t);
 	read_unlock(&tasklist_lock);
 
 	p = find_lock_task_mm(victim);
