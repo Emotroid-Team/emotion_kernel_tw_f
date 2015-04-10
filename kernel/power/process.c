@@ -131,14 +131,12 @@ static bool check_frozen_processes(void)
 	bool ret = true;
 
 	read_lock(&tasklist_lock);
-	for_each_process_thread(g, p) {
+	do_each_thread(g, p) {
 		if (p != current && !freezer_should_skip(p) &&
 		    !frozen(p)) {
 			ret = false;
-			goto done;
 		}
-	}
-done:
+	} while_each_thread(g, p);
 	read_unlock(&tasklist_lock);
 
 	return ret;
