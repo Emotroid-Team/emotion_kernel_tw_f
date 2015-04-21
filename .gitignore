@@ -54,6 +54,7 @@ drivers/tty/vt/defkeymap.c
 kernel/timeconst.h
 lib/crc32table.h
 lib/gen_crc32table
+scripts/dtbTool
 scripts/basic/fixdep
 scripts/conmakehash
 scripts/kallsyms
@@ -181,10 +182,12 @@ arch/arm/boot/compressed/piggy.xzkern
 arch/arm/boot/compressed/ashldi3.S
 arch/arm/boot/compressed/piggy.xzkern
 arch/arm/boot/zImage
+
 arch/arm/configs/apq8084_plc_defconfig
 arch/arm/configs/apq8084_plc_trlte_eur_defconfig
 arch/arm/configs/apq8084_placiano_defconfig
 arch/arm/configs/apq8084_emotion_defconfig
+arch/arm/configs/apq8084_nate_defconfig
 compile.log
 construir_kernel.sh
 rehacer_kernel.sh
