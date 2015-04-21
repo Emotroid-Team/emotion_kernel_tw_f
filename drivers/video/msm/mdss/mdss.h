@@ -27,6 +27,7 @@
 
 #define MAX_DRV_SUP_MMB_BLKS	44
 
+
 enum mdss_mdp_clk_type {
 	MDSS_CLK_AHB,
 	MDSS_CLK_AXI,
@@ -121,6 +122,10 @@ struct mdss_data_type {
 	size_t mdp_reg_size;
 	char __iomem *vbif_base;
 	char __iomem *mdp_base;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	resource_size_t physical_base;
+	resource_size_t physical_base_offset;
+#endif
 
 	struct mutex reg_lock;
 
@@ -128,7 +133,6 @@ struct mdss_data_type {
 	u32 irq_mask;
 	u32 irq_ena;
 	u32 irq_buzy;
-	bool irq_wakeup_en;
 	u32 has_bwc;
 	u32 has_decimation;
 	u32 wfd_mode;
@@ -239,7 +243,12 @@ void mdss_disable_irq_nosync(struct mdss_hw *hw);
 void mdss_bus_bandwidth_ctrl(int enable);
 int mdss_iommu_ctrl(int enable);
 int mdss_bus_scale_set_quota(int client, u64 ab_quota, u64 ib_quota);
-void mdss_enable_irq_wake(bool enable);
+
+#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+int mdss_mdp_debug_bus(void);
+void xlog(const char *name, u32 data0, u32 data1, u32 data2, u32 data3, u32 data4, u32 data5);
+void xlog_dump(void);
+#endif
 
 static inline struct ion_client *mdss_get_ionclient(void)
 {

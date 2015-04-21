@@ -66,9 +66,21 @@
 #include <asm/div64.h>
 #include "internal.h"
 
+#ifdef CONFIG_SDP_CACHE_CLEANUP
+#include <linux/highmem.h>
+#define PER_USER_RANGE 100000
+#define SENSITIVITY_UNKNOWN 0
+#define SENSITIVE 1
+#define NOT_SENSITIVE 2
+#endif
+
 #ifdef CONFIG_USE_PERCPU_NUMA_NODE_ID
 DEFINE_PER_CPU(int, numa_node);
 EXPORT_PER_CPU_SYMBOL(numa_node);
+#endif
+
+#ifdef CONFIG_SDP_CACHE_CLEANUP
+extern int dek_is_sdp_uid(uid_t uid);
 #endif
 
 #ifdef CONFIG_HAVE_MEMORYLESS_NODES
@@ -179,9 +191,9 @@ int sysctl_lowmem_reserve_ratio[MAX_NR_ZONES-1] = {
 	 256,
 #endif
 #ifdef CONFIG_HIGHMEM
-	 32,
+	 128,
 #endif
-	 32,
+	 128,
 };
 
 EXPORT_SYMBOL(totalram_pages);
@@ -724,6 +736,17 @@ static bool free_pages_prepare(struct page *page, unsigned int order)
 {
 	int i;
 	int bad = 0;
+#ifdef CONFIG_SDP_CACHE_CLEANUP
+	if (PageSensitive(page)) {
+		void *kaddr;
+		ClearPageSensitive(page);
+		kaddr = kmap_atomic(page);
+		if (kaddr)
+			clear_page(kaddr);
+		kunmap_atomic(kaddr);
+		flush_dcache_page(page);
+	}
+#endif
 
 	trace_mm_page_free(page, order);
 	kmemcheck_free_shadow(page, order);
@@ -1394,6 +1417,17 @@ void free_hot_cold_page(struct page *page, int cold)
 	struct per_cpu_pages *pcp;
 	unsigned long flags;
 	int migratetype;
+
+#ifdef CONFIG_SCFS_LOWER_PAGECACHE_INVALIDATION
+	/*
+	   struct scfs_sb_info *sbi;
+
+	   if (PageScfslower(page) || PageNocache(page)) {
+	   sbi = SCFS_S(page->mapping->host->i_sb);
+	   sbi->scfs_lowerpage_reclaim_count++;
+	   }
+	 */
+#endif
 
 	if (!free_pages_prepare(page, 0))
 		return;
@@ -2500,6 +2534,9 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	bool sync_migration = false;
 	bool deferred_compaction = false;
 	bool contended_compaction = false;
+#ifdef CONFIG_SEC_OOM_KILLER
+	unsigned long oom_invoke_timeout = jiffies + HZ/32;
+#endif
 
 	/*
 	 * In the slowpath, we sanity check order to avoid ever trying to
@@ -2620,7 +2657,12 @@ rebalance:
 	 * If we failed to make any progress reclaiming, then we are
 	 * running out of options and have to consider going OOM
 	 */
-	if (!did_some_progress) {
+#ifdef CONFIG_SEC_OOM_KILLER
+#define SHOULD_CONSIDER_OOM !did_some_progress || time_after(jiffies, oom_invoke_timeout)
+#else
+#define SHOULD_CONSIDER_OOM !did_some_progress
+#endif
+	if (SHOULD_CONSIDER_OOM) {
 		if ((gfp_mask & __GFP_FS) && !(gfp_mask & __GFP_NORETRY)) {
 			if (oom_killer_disabled)
 				goto nopage;
@@ -2628,6 +2670,13 @@ rebalance:
 			if ((current->flags & PF_DUMPCORE) &&
 			    !(gfp_mask & __GFP_NOFAIL))
 				goto nopage;
+#ifdef CONFIG_SEC_OOM_KILLER
+			if (did_some_progress)
+				pr_info("time's up : calling "
+					"__alloc_pages_may_oom(o:%d, gfp:0x%x)\n", order, gfp_mask);
+
+#endif
+
 			page = __alloc_pages_may_oom(gfp_mask, order,
 					zonelist, high_zoneidx,
 					nodemask, preferred_zone,
@@ -2653,6 +2702,9 @@ rebalance:
 					goto nopage;
 			}
 
+#ifdef CONFIG_SEC_OOM_KILLER
+			oom_invoke_timeout = jiffies + HZ/32;
+#endif
 			goto restart;
 		}
 	}
@@ -2780,6 +2832,32 @@ out:
 	if (page)
 		set_page_owner(page, order, gfp_mask);
 
+#ifdef CONFIG_SDP_CACHE_CLEANUP
+	if(page) {
+		uid_t uid = task_uid(current);
+		if (((uid/PER_USER_RANGE) <= 199)  && ((uid/PER_USER_RANGE) >= 100)) {
+			if (dek_is_sdp_uid(uid)) {
+				switch (current->sensitive) {
+				case SENSITIVITY_UNKNOWN:
+					if ((0 == strcmp(current->comm, "m.android.email")) ||
+						(0 == strcmp(current->comm, "ndroid.exchange"))) {
+						SetPageSensitive(page);
+						current->sensitive = SENSITIVE;
+					} else {
+						current->sensitive = NOT_SENSITIVE;
+					}
+					break;
+				case SENSITIVE:
+						SetPageSensitive(page);
+					break;
+				case NOT_SENSITIVE:
+				default:
+					break;
+				}
+			}
+		}
+	}
+#endif
 	return page;
 }
 EXPORT_SYMBOL(__alloc_pages_nodemask);
@@ -2813,6 +2891,19 @@ EXPORT_SYMBOL(get_zeroed_page);
 void __free_pages(struct page *page, unsigned int order)
 {
 	if (put_page_testzero(page)) {
+#ifdef CONFIG_TIMA_RKP_DEBUG
+	//TODO: Do the check for all pages if order > 0
+	if (((unsigned long)__va(page_to_phys(page))) < ((unsigned long) high_memory)){
+		if (tima_debug_page_protection((unsigned long)__va(page_to_phys(page)), 6, 0) == 1) {
+			tima_debug_signal_failure(0x3f80f221, 6);
+			//tima_send_cmd((unsigned long)__va(page_to_phys(page)), 0x3f80e221);
+			//printk(KERN_ERR"TIMA: Freed PAGE prtctd va %lx pa %lx caller %lx\n",
+			// (unsigned long)__va(page_to_phys(page)),
+			// (unsigned long) page_to_phys(page),
+			// (unsigned long)__builtin_return_address(0));
+		}
+	}
+#endif
 		if (order == 0)
 			free_hot_cold_page(page, 0);
 		else
@@ -3110,7 +3201,12 @@ void show_free_areas(unsigned int filter)
 		" dirty:%lu writeback:%lu unstable:%lu\n"
 		" free:%lu slab_reclaimable:%lu slab_unreclaimable:%lu\n"
 		" mapped:%lu shmem:%lu pagetables:%lu bounce:%lu\n"
-		" free_cma:%lu\n",
+#if defined(CONFIG_CMA_PAGE_COUNTING)
+		" free_cma:%lu cma_active_anon:%lu cma_inactive_anon:%lu\n"
+		" cma_active_file:%lu cma_inactive_file:%lu\n",
+#else
+		" free cma:%lu\n",
+#endif
 		global_page_state(NR_ACTIVE_ANON),
 		global_page_state(NR_INACTIVE_ANON),
 		global_page_state(NR_ISOLATED_ANON),
@@ -3128,7 +3224,15 @@ void show_free_areas(unsigned int filter)
 		global_page_state(NR_SHMEM),
 		global_page_state(NR_PAGETABLE),
 		global_page_state(NR_BOUNCE),
+#if defined(CONFIG_CMA_PAGE_COUNTING)
+		global_page_state(NR_FREE_CMA_PAGES),
+		global_page_state(NR_CMA_ACTIVE_ANON),
+		global_page_state(NR_CMA_INACTIVE_ANON),
+		global_page_state(NR_CMA_ACTIVE_FILE),
+		global_page_state(NR_CMA_INACTIVE_FILE));
+#else
 		global_page_state(NR_FREE_CMA_PAGES));
+#endif
 
 	for_each_populated_zone(zone) {
 		int i;
@@ -3162,6 +3266,13 @@ void show_free_areas(unsigned int filter)
 			" unstable:%lukB"
 			" bounce:%lukB"
 			" free_cma:%lukB"
+#if defined(CONFIG_CMA_PAGE_COUNTING)
+			" cma_active_anon:%lukB"
+			" cma_inactive_anon:%lukB"
+			" cma_active_file:%lukB"
+			" cma_inactive_file:%lukB"
+			" cma_unevictable:%lukB"
+#endif
 			" writeback_tmp:%lukB"
 			" pages_scanned:%lu"
 			" all_unreclaimable? %s"
@@ -3193,6 +3304,13 @@ void show_free_areas(unsigned int filter)
 			K(zone_page_state(zone, NR_UNSTABLE_NFS)),
 			K(zone_page_state(zone, NR_BOUNCE)),
 			K(zone_page_state(zone, NR_FREE_CMA_PAGES)),
+#if defined(CONFIG_CMA_PAGE_COUNTING)
+			K(zone_page_state(zone, NR_CMA_ACTIVE_ANON)),
+			K(zone_page_state(zone, NR_CMA_INACTIVE_ANON)),
+			K(zone_page_state(zone, NR_CMA_ACTIVE_FILE)),
+			K(zone_page_state(zone, NR_CMA_INACTIVE_FILE)),
+			K(zone_page_state(zone, NR_CMA_UNEVICTABLE)),
+#endif
 			K(zone_page_state(zone, NR_WRITEBACK_TEMP)),
 			zone->pages_scanned,
 			(!zone_reclaimable(zone) ? "yes" : "no")
@@ -5523,6 +5641,9 @@ void setup_per_zone_wmarks(void)
  */
 static void __meminit calculate_zone_inactive_ratio(struct zone *zone)
 {
+#ifdef CONFIG_FIX_INACTIVE_RATIO
+	zone->inactive_ratio = 1;
+#else
 	unsigned int gb, ratio;
 
 	/* Zone size in gigabytes */
@@ -5533,6 +5654,7 @@ static void __meminit calculate_zone_inactive_ratio(struct zone *zone)
 		ratio = 1;
 
 	zone->inactive_ratio = ratio;
+#endif
 }
 
 static void __meminit setup_per_zone_inactive_ratio(void)
@@ -6332,7 +6454,14 @@ static const struct trace_print_flags pageflag_names[] = {
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 	{1UL << PG_compound_lock,	"compound_lock"	},
 #endif
+#ifdef CONFIG_SCFS_LOWER_PAGECACHE_INVALIDATION
+	{1UL << PG_scfslower, "scfslower"},
+	{1UL << PG_nocache,"nocache"},
+#endif
 	{1UL << PG_readahead,           "PG_readahead"  },
+#ifdef CONFIG_SDP
+	{1UL << PG_sensitive,	"sensitive"	},
+#endif
 };
 
 static void dump_page_flags(unsigned long flags)

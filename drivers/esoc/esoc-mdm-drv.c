@@ -272,6 +272,10 @@ static struct esoc_drv esoc_ssr_drv = {
 
 int __init esoc_ssr_init(void)
 {
+#if defined(CONFIG_MACH_TRLTE_LDU) || defined(CONFIG_MACH_TBLTE_LDU)
+	pr_err("%s LDU doesn't have modem, skip esoc drv register", __func__);
+	return 0;
+#endif
 	return esoc_drv_register(&esoc_ssr_drv);
 }
 module_init(esoc_ssr_init);

@@ -86,6 +86,9 @@ void diag_dci_record_traffic(int read_bytes, uint8_t ch_type,
 	temp_data->ch_type = ch_type;
 	temp_data->proc = proc;
 	diag_get_timestamp(temp_data->time_stamp);
+	DIAG_LOG(DIAG_DEBUG_MED, "[%s] i: %ld size: %d peri: %d ch: %d proc: %d\n",
+		  __func__, temp_data->iteration, temp_data->data_size, temp_data->peripheral,
+		 temp_data->ch_type, temp_data->proc);
 	curr_dci_data++;
 	iteration++;
 	mutex_unlock(&dci_stat_mutex);
@@ -119,7 +122,7 @@ static void create_dci_event_mask_tbl(unsigned char *tbl_buf)
 		memset(tbl_buf, 0, DCI_EVENT_MASK_SIZE);
 }
 
-void dci_drain_data(unsigned long data)
+static void dci_drain_data(unsigned long data)
 {
 	queue_work(driver->diag_dci_wq, &dci_data_drain_work);
 }
@@ -128,7 +131,7 @@ static void dci_check_drain_timer(void)
 {
 	if (!dci_timer_in_progress) {
 		dci_timer_in_progress = 1;
-		mod_timer(&dci_drain_timer, jiffies + msecs_to_jiffies(500));
+		 mod_timer(&dci_drain_timer, jiffies + msecs_to_jiffies(500));
 	}
 }
 
@@ -285,7 +288,6 @@ void dci_data_drain_work_fn(struct work_struct *work)
 		for (i = 0; i < entry->num_buffers; i++) {
 			proc_buf = &entry->buffers[i];
 
-			mutex_lock(&proc_buf->buf_mutex);
 			buf_temp = proc_buf->buf_primary;
 			if (DCI_CAN_ADD_BUF_TO_LIST(buf_temp))
 				dci_add_buffer_to_list(entry, buf_temp);
@@ -297,9 +299,10 @@ void dci_data_drain_work_fn(struct work_struct *work)
 			buf_temp = proc_buf->buf_curr;
 			if (DCI_CAN_ADD_BUF_TO_LIST(buf_temp)) {
 				dci_add_buffer_to_list(entry, buf_temp);
+				mutex_lock(&proc_buf->buf_mutex);
 				proc_buf->buf_curr = NULL;
+				mutex_unlock(&proc_buf->buf_mutex);
 			}
-			mutex_unlock(&proc_buf->buf_mutex);
 		}
 		if (!list_empty(&entry->list_write_buf) && !entry->in_service) {
 			mutex_lock(&entry->write_buf_mutex);
@@ -327,16 +330,24 @@ static int diag_process_single_dci_pkt(unsigned char *buf, int len,
 
 	switch (cmd_code) {
 	case LOG_CMD_CODE:
+		DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a log, data_src: %d token: %d\n",
+			 __func__, data_source, token);
 		extract_dci_log(buf, len, data_source, token);
 		break;
 	case EVENT_CMD_CODE:
+		DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a event, data_src: %d token: %d\n",
+			 __func__, data_source, token);
 		extract_dci_events(buf, len, data_source, token);
 		break;
 	case DCI_PKT_RSP_CODE:
 	case DCI_DELAYED_RSP_CODE:
+		DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a rsp %d, data_src: %d token: %d\n",
+			 __func__, cmd_code, data_source, token);
 		extract_dci_pkt_rsp(buf, len, data_source, token);
 		break;
 	case DCI_CONTROL_PKT_CODE:
+		DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a ctrl pkt, data_src: %d token: %d\n",
+			 __func__, data_source, token);
 		extract_dci_ctrl_pkt(buf, len, token);
 		break;
 	default:
@@ -636,7 +647,10 @@ static struct dci_pkt_req_entry_t *diag_register_dci_transaction(int uid,
 	entry->client_id = client_id;
 	entry->uid = uid;
 	entry->tag = driver->dci_tag;
+	DIAG_LOG(DIAG_DEBUG_HIGH, "diag: Registering DCI cmd req, client_id: %d, uid: %d, tag:%d\n",
+				entry->client_id, entry->uid, entry->tag);
 	list_add_tail(&entry->track, &driver->dci_req_list);
+	driver->num_dci_cmd++;
 	mutex_unlock(&driver->dci_mutex);
 
 	return entry;
@@ -666,6 +680,7 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 
 	/* It is an immediate response, delete it from the table */
 	if (*buf != 0x80) {
+		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -683,6 +698,7 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 	 */
 	delayed_rsp_id = *(uint16_t *)(buf + 8);
 	if (delayed_rsp_id == 0) {
+		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -696,6 +712,7 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 	 */
 	rsp_count = *(uint16_t *)(buf + 10);
 	if (rsp_count > 0 && rsp_count < 0x1000) {
+		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -726,6 +743,9 @@ void extract_dci_ctrl_pkt(unsigned char *buf, int len, int token)
 								ctrl_pkt_id);
 		return;
 	}
+
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a ctrl packet. token: %d\n",
+		  __func__, token);
 
 	diag_ws_on_read(DIAG_WS_DCI, len);
 	header = (struct diag_ctrl_dci_status *)temp;
@@ -801,6 +821,8 @@ void extract_dci_pkt_rsp(unsigned char *buf, int len, int data_source,
 	temp += cmd_code_len;
 	tag = *(int *)temp;
 	temp += sizeof(int);
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a response. data_souce: %d token: %d tag: %d\n",
+		  __func__, data_source, token, tag);
 
 	/*
 	 * The size of the response is (total length) - (length of the command
@@ -831,7 +853,6 @@ void extract_dci_pkt_rsp(unsigned char *buf, int len, int data_source,
 	if (delete_flag < 0)
 		return;
 
-	mutex_lock(&entry->buffers[data_source].buf_mutex);
 	rsp_buf = entry->buffers[data_source].buf_cmd;
 
 	mutex_lock(&rsp_buf->data_mutex);
@@ -848,7 +869,6 @@ void extract_dci_pkt_rsp(unsigned char *buf, int len, int data_source,
 		if (!temp_buf) {
 			pr_err("diag: DCI realloc failed\n");
 			mutex_unlock(&rsp_buf->data_mutex);
-			mutex_unlock(&entry->buffers[data_source].buf_mutex);
 			return;
 		} else {
 			rsp_buf->data = temp_buf;
@@ -864,6 +884,8 @@ void extract_dci_pkt_rsp(unsigned char *buf, int len, int data_source,
 	*(int *)(rsp_buf->data + rsp_buf->data_len) = req_entry->uid;
 	rsp_buf->data_len += sizeof(int);
 	memcpy(rsp_buf->data + rsp_buf->data_len, temp, rsp_len);
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] copied rsp to client %d, token: %d\n",
+		  __func__, entry->client_info.client_id, entry->client_info.token);
 	rsp_buf->data_len += rsp_len;
 	rsp_buf->data_source = data_source;
 
@@ -883,7 +905,6 @@ void extract_dci_pkt_rsp(unsigned char *buf, int len, int data_source,
 	 * for log and event buffers to be full
 	 */
 	dci_add_buffer_to_list(entry, rsp_buf);
-	mutex_unlock(&entry->buffers[data_source].buf_mutex);
 }
 
 static void copy_dci_event(unsigned char *buf, int len,
@@ -924,6 +945,8 @@ static void copy_dci_event(unsigned char *buf, int len,
 	*(int *)(data_buffer->data + data_buffer->data_len) = DCI_EVENT_TYPE;
 	data_buffer->data_len += sizeof(int);
 	memcpy(data_buffer->data + data_buffer->data_len, buf, len);
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] copied event to client %d, token: %d\n",
+		  __func__, client->client_info.client_id, client->client_info.token);
 	data_buffer->data_len += len;
 	data_buffer->data_source = data_source;
 	mutex_unlock(&data_buffer->data_mutex);
@@ -945,6 +968,8 @@ void extract_dci_events(unsigned char *buf, int len, int data_source, int token)
 		pr_err("diag: Incoming dci event length is invalid\n");
 		return;
 	}
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a event. data_souce: %d token: %d\n",
+		  __func__, data_source, token);
 	/* Move directly to the start of the event series. 1 byte for
 	 * event code and 2 bytes for the length field.
 	 */
@@ -1088,6 +1113,8 @@ static void copy_dci_log(unsigned char *buf, int len,
 	data_buffer->data_len += sizeof(int);
 	memcpy(data_buffer->data + data_buffer->data_len, buf + sizeof(int),
 	       log_length);
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] copied log to client %d, token: %d\n",
+		  __func__, client->client_info.client_id, client->client_info.token);
 	data_buffer->data_len += log_length;
 	data_buffer->data_source = data_source;
 	mutex_unlock(&data_buffer->data_mutex);
@@ -1115,6 +1142,9 @@ void extract_dci_log(unsigned char *buf, int len, int data_source, int token)
 						__func__, len, read_bytes);
 		return;
 	}
+
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] received a log. data_souce: %d token: %d\n",
+		  __func__, data_source, token);
 
 	/* parse through log mask table of each client and check mask */
 	list_for_each_safe(start, temp, &driver->dci_client_list) {
@@ -1727,6 +1757,8 @@ int diag_process_dci_transaction(unsigned char *buf, int len)
 				return -EIO;
 			}
 			log_code = *(uint16_t *)temp;
+			DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] Setting log code %d, set_mask: %d\n",
+				 __func__, log_code, set_mask);
 			equip_id = LOG_GET_EQUIP_ID(log_code);
 			item_num = LOG_GET_ITEM_NUM(log_code);
 			byte_index = item_num/8 + 2;
@@ -1832,6 +1864,8 @@ int diag_process_dci_transaction(unsigned char *buf, int len)
 				return -EIO;
 			}
 			event_id = *(int *)temp;
+			DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] Setting event id %d, set_mask: %d\n",
+				 __func__, event_id, set_mask);
 			byte_index = event_id/8;
 			if (byte_index >= DCI_EVENT_MASK_SIZE) {
 				pr_err("diag: dci: Event type, invalid byte index\n");
@@ -2408,6 +2442,7 @@ int diag_dci_init(void)
 	driver->dci_tag = 0;
 	driver->dci_client_id = 0;
 	driver->num_dci_client = 0;
+	driver->num_dci_cmd = 0;
 	mutex_init(&driver->dci_mutex);
 	mutex_init(&dci_log_mask_mutex);
 	mutex_init(&dci_event_mask_mutex);
@@ -2518,6 +2553,8 @@ int diag_dci_clear_log_mask(int client_id)
 	token = entry->client_info.token;
 	update_ptr = dci_ops_tbl[token].log_mask_composite;
 
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] Clearing log mask for %d\n",
+		 __func__, client_id);
 	create_dci_log_mask_tbl(entry->dci_log_mask, DCI_LOG_MASK_CLEAN);
 	diag_dci_invalidate_cumulative_log_mask(token);
 
@@ -2546,6 +2583,8 @@ int diag_dci_clear_event_mask(int client_id)
 	token = entry->client_info.token;
 	update_ptr = dci_ops_tbl[token].event_mask_composite;
 
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] Clearing event mask for %d\n",
+		 __func__, client_id);
 	create_dci_event_mask_tbl(entry->dci_event_mask);
 	diag_dci_invalidate_cumulative_event_mask(token);
 
@@ -2705,6 +2744,8 @@ int diag_dci_register_client(struct diag_dci_reg_tbl_t *reg_entry)
 	queue_work(driver->diag_real_time_wq, &driver->diag_real_time_work);
 	mutex_unlock(&driver->dci_mutex);
 
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] registered new dci client, id: %d token:  %d\n",
+		  __func__, driver->dci_client_id, reg_entry->token);
 	return driver->dci_client_id;
 
 fail_alloc:
@@ -2747,6 +2788,8 @@ int diag_dci_deinit_client(struct diag_dci_client_tbl *entry)
 
 	token = entry->client_info.token;
 
+	DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] deinit client: %d\n",
+		 __func__, entry->client_info.client_id);
 	mutex_lock(&driver->dci_mutex);
 	/*
 	 * Remove the entry from the list before freeing the buffers
@@ -2781,6 +2824,7 @@ int diag_dci_deinit_client(struct diag_dci_client_tbl *entry)
 		req_entry = list_entry(start, struct dci_pkt_req_entry_t,
 				       track);
 		if (req_entry->client_id == entry->client_info.client_id) {
+			driver->num_dci_cmd--;
 			list_del(&req_entry->track);
 			kfree(req_entry);
 		}

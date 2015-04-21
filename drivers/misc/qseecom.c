@@ -42,6 +42,9 @@
 #include <mach/msm_bus_board.h>
 #include <mach/qseecomi.h>
 #include <asm/cacheflush.h>
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#endif
 #include "qseecom_legacy.h"
 #include "qseecom_kernel.h"
 
@@ -73,6 +76,7 @@
 
 #define QSEECOM_SEND_CMD_CRYPTO_TIMEOUT	2000
 #define QSEECOM_LOAD_APP_CRYPTO_TIMEOUT	2000
+#define TWO 2
 
 enum qseecom_clk_definitions {
 	CLK_DFAB = 0,
@@ -1441,7 +1445,7 @@ static int __validate_send_cmd_inputs(struct qseecom_dev_handle *data,
 	}
 	return 0;
 }
-
+ 
 static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 				struct qseecom_send_cmd_req *req)
 {
@@ -3639,6 +3643,13 @@ static long qseecom_ioctl(struct file *file, unsigned cmd,
 		/* Only one client allowed here at a time */
 		mutex_lock(&app_access_lock);
 		if (qseecom.support_bus_scaling) {
+			/* register bus bw in case the client doesn't do it */
+			if (!data->mode) {
+				mutex_lock(&qsee_bw_mutex);
+				__qseecom_register_bus_bandwidth_needs(
+								data, HIGH);
+				mutex_unlock(&qsee_bw_mutex);
+			}
 			if (!data->mode) {
 				mutex_lock(&qsee_bw_mutex);
 				__qseecom_register_bus_bandwidth_needs(
@@ -4443,6 +4454,9 @@ static int qseecom_probe(struct platform_device *pdev)
 				req.qsee_cmd_id = QSEOS_APP_REGION_NOTIFICATION;
 				req.addr = resource->start;
 				req.size = resource_size(resource);
+#ifdef CONFIG_SEC_DEBUG
+				sec_debug_secure_app_addr_size(req.addr, req.size);
+#endif
 				pr_warn("secure app region addr=0x%x size=0x%x",
 							req.addr, req.size);
 			} else {

@@ -23,6 +23,7 @@
 #include "mdss_mdp.h"
 #include "mdss_mdp_rotator.h"
 #include "mdss_fb.h"
+#include "mdss_mdp_trace.h"
 #include "mdss_debug.h"
 
 #define MAX_ROTATOR_SESSIONS 8
@@ -477,12 +478,11 @@ int mdss_mdp_rotator_setup(struct msm_fb_data_type *mfd,
 			goto rot_err;
 		}
 
-		if (work_busy(&rot->commit_work)) {
+		if (work_pending(&rot->commit_work)) {
 			mutex_unlock(&rotator_lock);
 			flush_work(&rot->commit_work);
 			mutex_lock(&rotator_lock);
 		}
-
 		if (rot->format != fmt->format)
 			format_changed = true;
 
@@ -584,7 +584,7 @@ static int mdss_mdp_rotator_finish(struct mdss_mdp_rotator_session *rot)
 
 	rot_pipe = rot->pipe;
 	if (rot_pipe) {
-		if (work_busy(&rot->commit_work)) {
+		if (work_pending(&rot->commit_work)) {
 			mutex_unlock(&rotator_lock);
 			flush_work(&rot->commit_work);
 			mutex_lock(&rotator_lock);
@@ -657,6 +657,8 @@ int mdss_mdp_rotator_play(struct msm_fb_data_type *mfd,
 	u32 flgs;
 
 	mutex_lock(&rotator_lock);
+
+	MDSS_XLOG(req->id, 0xB);
 	rot = mdss_mdp_rotator_session_get(req->id);
 	if (!rot) {
 		pr_err("invalid session id=%x\n", req->id);
@@ -710,6 +712,7 @@ int mdss_mdp_rotator_play(struct msm_fb_data_type *mfd,
 
 dst_buf_fail:
 	mdss_iommu_ctrl(0);
+	MDSS_XLOG(req->id, 0xE);
 session_fail:
 	mutex_unlock(&rotator_lock);
 	return ret;

@@ -194,6 +194,7 @@
 
 /* Global USB2 PHY Configuration Register */
 #define DWC3_GUSB2PHYCFG_PHYSOFTRST	(1 << 31)
+#define DWC3_GUSB2PHYCFG_ENBLSLPM	(1 << 8)
 #define DWC3_GUSB2PHYCFG_SUSPHY		(1 << 6)
 
 /* Global USB3 PIPE Control Register */
@@ -874,14 +875,21 @@ struct dwc3 {
 	bool			err_evt_seen;
 	bool			enable_suspend_event;
 	struct dwc3_gadget_events	dbg_gadget_events;
+	unsigned long		irq_cnt;
 
 	/* offload IRQ handling to tasklet */
 	int			irq;
-	unsigned long		irq_cnt;
 	struct tasklet_struct	bh;
 	unsigned                bh_completion_time[MAX_INTR_STATS];
 	unsigned                bh_handled_evt_cnt[MAX_INTR_STATS];
 	unsigned                bh_dbg_index;
+
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	enum usb_device_speed	speed_limit;
+	struct work_struct	reconnect_work;
+	int			ss_host_avail;
+	bool			reconnect;
+#endif
 };
 
 /* -------------------------------------------------------------------------- */

@@ -14,6 +14,7 @@
 #include <linux/slimbus/slimbus.h>
 #include <linux/msm-sps.h>
 #include "slim-msm.h"
+#include <linux/irqchip/arm-gic.h>
 
 int msm_slim_rx_enqueue(struct msm_slim_ctrl *dev, u32 *buf, u8 len)
 {
@@ -72,6 +73,15 @@ void msm_slim_put_ctrl(struct msm_slim_ctrl *dev)
 		pm_runtime_put_sync(dev->dev);
 #endif
 }
+#if defined(CONFIG_SND_SOC_ES705)
+void msm_slim_es705_func(struct slim_device *gen0_client)
+{
+	struct msm_slim_ctrl *dev = slim_get_ctrldata(gen0_client->ctrl);
+	msm_slim_get_ctrl(dev);
+	msm_slim_put_ctrl(dev);
+}
+EXPORT_SYMBOL(msm_slim_es705_func);
+#endif
 
 irqreturn_t msm_slim_port_irq_handler(struct msm_slim_ctrl *dev, u32 pstat)
 {
@@ -872,14 +882,19 @@ static void msm_slim_remove_ep(struct msm_slim_ctrl *dev,
 void msm_slim_sps_exit(struct msm_slim_ctrl *dev, bool dereg)
 {
 	int i;
+	struct sps_register_event sps_event;
 
 	if (dev->use_rx_msgqs >= MSM_MSGQ_ENABLED)
 		msm_slim_remove_ep(dev, &dev->rx_msgq, &dev->use_rx_msgqs);
 	if (dev->use_tx_msgqs >= MSM_MSGQ_ENABLED)
 		msm_slim_remove_ep(dev, &dev->tx_msgq, &dev->use_tx_msgqs);
 	for (i = dev->port_b; i < MSM_SLIM_NPORTS; i++) {
-		if (dev->pipes[i - dev->port_b].connected)
-			msm_slim_disconn_pipe_port(dev, i - dev->port_b);
+		struct msm_slim_endp *endpoint = &dev->pipes[i - dev->port_b];
+		if (!(dev->pipes[i - dev->port_b].connected))
+			continue;
+		memset(&sps_event, 0, sizeof(sps_event));
+		sps_register_event(endpoint->sps, &sps_event);
+		dev->pipes[i - dev->port_b].connected = false;
 	}
 	if (dereg) {
 		for (i = dev->port_b; i < MSM_SLIM_NPORTS; i++) {
@@ -1180,6 +1195,12 @@ static int msm_slim_qmi_send_power_request(struct msm_slim_ctrl *dev,
 					&resp_desc, &resp, sizeof(resp), 5000);
 	if (rc < 0) {
 		SLIM_ERR(dev, "%s: QMI send req failed %d\n", __func__, rc);
+		if (rc == -ETIMEDOUT)
+		{
+			local_irq_disable();
+			gic_show_pending_irq();
+			panic("msm_slim_qmi_send_power_request QMI send req failed");
+		}
 		return rc;
 	}
 
@@ -1271,6 +1292,8 @@ void msm_slim_qmi_exit(struct msm_slim_ctrl *dev)
 int msm_slim_qmi_power_request(struct msm_slim_ctrl *dev, bool active)
 {
 	struct slimbus_power_req_msg_v01 req;
+
+	dev_err(dev->dev, "%s: active %d\n", __func__, active);
 
 	if (active)
 		req.pm_req = SLIMBUS_PM_ACTIVE_V01;

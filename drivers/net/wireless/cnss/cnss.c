@@ -66,8 +66,8 @@
 #define PM_OPTIONS_RESUME_LINK_DOWN \
 	(MSM_PCIE_CONFIG_NO_CFG_RESTORE)
 
-#define SOC_SWREG_VOLT_MAX	1150000
-#define SOC_SWREG_VOLT_MIN	1150000
+#define SOC_SWREG_VOLT_MAX	1187500
+#define SOC_SWREG_VOLT_MIN	1187500
 
 #define POWER_ON_DELAY		2000
 #define WLAN_ENABLE_DELAY	10000
@@ -128,6 +128,8 @@ static struct cnss_data {
 	void *fw_mem;
 #endif
 } *penv;
+
+extern unsigned int system_rev;
 
 static int cnss_wlan_vreg_on(struct cnss_wlan_vreg_info *vreg_info)
 {
@@ -216,6 +218,11 @@ static int cnss_wlan_gpio_init(struct cnss_wlan_gpio_info *info)
 {
 	int ret = 0;
 
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if(system_rev > 3)
+		return ret;
+#endif
+
 	ret = gpio_request(info->num, info->name);
 
 	if (ret) {
@@ -240,11 +247,19 @@ err_gpio_req:
 
 	return ret;
 }
-
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+extern void msm_pcie_wlan_en(bool onoff);
+#endif
 static void cnss_wlan_gpio_set(struct cnss_wlan_gpio_info *info, bool state)
 {
 	if (!info->prop)
 		return;
+
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if(system_rev > 3) {
+		info->state = gpio_get_value(info->num);
+	}
+#endif
 
 	if (info->state == state) {
 		pr_debug("Already %s gpio is %s\n",
@@ -252,7 +267,15 @@ static void cnss_wlan_gpio_set(struct cnss_wlan_gpio_info *info, bool state)
 		return;
 	}
 
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if(system_rev > 3) {
+		msm_pcie_wlan_en(state);
+	} else {
+		gpio_set_value(info->num, state);
+	}
+#else
 	gpio_set_value(info->num, state);
+#endif
 	info->state = state;
 
 	pr_debug("%s: %s gpio is now %s\n", __func__,
@@ -283,9 +306,15 @@ static int cnss_wlan_get_resources(struct platform_device *pdev)
 		goto err_reg_enable;
 	}
 
-	if (of_get_property(pdev->dev.of_node,
-		    WLAN_SWREG_NAME"-supply", NULL)) {
-
+	pr_err("%s: system_rev=%d\n", __func__, system_rev);
+	if (of_get_property(pdev->dev.of_node, WLAN_SWREG_NAME"-supply", NULL)
+#ifdef CONFIG_SEC_LENTIS_PROJECT
+		&& (system_rev > 6)
+#endif
+#ifdef CONFIG_SEC_TRLTE_PROJECT
+		&& (system_rev > 3)
+#endif
+	) {
 		vreg_info->soc_swreg = regulator_get(&pdev->dev,
 			WLAN_SWREG_NAME);
 		if (IS_ERR(vreg_info->soc_swreg)) {
@@ -293,8 +322,20 @@ static int cnss_wlan_get_resources(struct platform_device *pdev)
 					__func__);
 			goto err_reg_get2;
 		}
+#ifdef CONFIG_SEC_LENTIS_PROJECT
+		if(system_rev == 7)
+			ret = regulator_set_voltage(vreg_info->soc_swreg,
+					1200000, 1200000);
+		else if(system_rev < 7)
+			ret = regulator_set_voltage(vreg_info->soc_swreg,
+					1150000, 1150000);
+		else
+			ret = regulator_set_voltage(vreg_info->soc_swreg,
+					SOC_SWREG_VOLT_MIN, SOC_SWREG_VOLT_MAX);
+#else
 		ret = regulator_set_voltage(vreg_info->soc_swreg,
-				SOC_SWREG_VOLT_MIN, SOC_SWREG_VOLT_MAX);
+					1150000, 1150000);
+#endif
 		if (ret) {
 			pr_err("%s: vreg initial voltage set failed on soc-swreg\n",
 					__func__);
@@ -316,11 +357,29 @@ static int cnss_wlan_get_resources(struct platform_device *pdev)
 	}
 
 	gpio_info->prop = true;
+
+#ifdef USE_GPIO_EXPANDER_WLEN_EN
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if(system_rev < 4)
+		ret = of_property_read_u32((&pdev->dev)->of_node,
+					gpio_info->name, &gpio_info->num);
+	else
+		ret = 0;
+#endif
+#else
 	ret = of_get_named_gpio((&pdev->dev)->of_node,
 				gpio_info->name, 0);
+#endif
 
 	if (ret >= 0) {
+#ifdef USE_GPIO_EXPANDER_WLEN_EN
+#if defined (CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if(system_rev < 4)
+		pr_err("From now, We will use GPIO expander port num=%d\n", gpio_info->num);
+#endif
+#else
 		gpio_info->num = ret;
+#endif
 		ret = 0;
 	} else {
 		if (ret == -EPROBE_DEFER)

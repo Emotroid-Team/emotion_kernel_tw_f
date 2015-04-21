@@ -900,7 +900,6 @@ static void handle_session_flush(enum command_response cmd, void *data)
 static void handle_session_error(enum command_response cmd, void *data)
 {
 	struct msm_vidc_cb_cmd_done *response = data;
-	int rc;
 	struct hfi_device *hdev = NULL;
 	struct msm_vidc_inst *inst = NULL;
 
@@ -922,15 +921,6 @@ static void handle_session_error(enum command_response cmd, void *data)
 	hdev = inst->core->device;
 	dprintk(VIDC_WARN, "Session error received for session %p\n", inst);
 	change_inst_state(inst, MSM_VIDC_CORE_INVALID);
-
-	mutex_lock(&inst->lock);
-	dprintk(VIDC_DBG, "cleaning up inst: %p\n", inst);
-	rc = call_hfi_op(hdev, session_clean, inst->session);
-	if (rc)
-		dprintk(VIDC_ERR, "Session (%p) clean failed: %d\n", inst, rc);
-
-	inst->session = NULL;
-	mutex_unlock(&inst->lock);
 
 	if (response->status == VIDC_ERR_MAX_CLIENTS) {
 		dprintk(VIDC_WARN,
@@ -1417,6 +1407,8 @@ static void handle_fbd(enum command_response cmd, void *data)
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_DATA_CORRUPT;
 		if (fill_buf_done->flags1 & HAL_BUFFERFLAG_DROP_FRAME)
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_DROP_FRAME;
+		if (fill_buf_done->flags1 & HAL_BUFFERFLAG_MBAFF)
+			vb->v4l2_buf.flags |= V4L2_MSM_BUF_FLAG_MBAFF;
 		if (fill_buf_done->flags1 &
 			HAL_BUFFERFLAG_TS_DISCONTINUITY)
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_TS_DISCONTINUITY;
@@ -2094,14 +2086,18 @@ static int msm_vidc_deinit_core(struct msm_vidc_inst *inst)
 		cancel_delayed_work(&core->fw_unload_work);
 
 		/*
-		* Delay unloading of firmware for 10 sec. This is useful
+		* Delay unloading of firmware. This is useful
 		* in avoiding firmware download delays in cases where we
 		* will have a burst of back to back video playback sessions
 		* e.g. thumbnail generation.
 		*/
 		schedule_delayed_work(&core->fw_unload_work,
 			msecs_to_jiffies(core->state == VIDC_CORE_INVALID ?
-					0 : 10000));
+					0 : msm_vidc_firmware_unload_delay));
+
+		dprintk(VIDC_DBG, "firmware unload delayed by %u ms\n",
+						core->state == VIDC_CORE_INVALID ?
+					0 : msm_vidc_firmware_unload_delay);
 	}
 
 core_already_uninited:
@@ -2223,9 +2219,11 @@ static int msm_vidc_load_resources(int flipped_state,
 		dprintk(VIDC_ERR, "HW is overloaded, needed: %d max: %d\n",
 			num_mbs_per_sec, core->resources.max_load);
 		msm_vidc_print_running_insts(core);
+#if 0 /* Samsung skips the overloaded error return  */
 		inst->state = MSM_VIDC_CORE_INVALID;
 		msm_comm_kill_session(inst);
 		return -ENOMEM;
+#endif
 	}
 
 	hdev = core->device;
@@ -3836,7 +3834,9 @@ static int msm_vidc_load_supported(struct msm_vidc_inst *inst)
 				num_mbs_per_sec,
 				inst->core->resources.max_load);
 			msm_vidc_print_running_insts(inst->core);
+#if 0 /* Samsung skips the overloaded error return  */					
 			return -EINVAL;
+#endif
 		}
 	}
 	return 0;
@@ -4073,8 +4073,9 @@ int msm_comm_kill_session(struct msm_vidc_inst *inst)
 	 * the session send session_abort to firmware to clean up and release
 	 * the session, else just kill the session inside the driver.
 	 */
-	if (inst->state >= MSM_VIDC_OPEN_DONE &&
-			inst->state < MSM_VIDC_CLOSE_DONE) {
+	if ((inst->state >= MSM_VIDC_OPEN_DONE &&
+			inst->state < MSM_VIDC_CLOSE_DONE) ||
+			inst->state == MSM_VIDC_CORE_INVALID) {
 		struct hfi_device *hdev = inst->core->device;
 		int abort_completion = SESSION_MSG_INDEX(SESSION_ABORT_DONE);
 

@@ -129,9 +129,9 @@ struct eth_dev {
 	unsigned long		tx_throttle;
 	unsigned int		tx_aggr_cnt[DL_MAX_PKTS_PER_XFER];
 	unsigned int		tx_pkts_rcvd;
-	unsigned int		tx_bytes_rcvd;
 	unsigned int		loop_brk_cnt;
 	struct dentry		*uether_dent;
+	struct dentry		*uether_dfile;
 
 	enum ifc_state		state;
 	struct notifier_block	cpufreq_notifier;
@@ -384,6 +384,7 @@ static void rx_complete(struct usb_ep *ep, struct usb_request *req)
 	/* normal completion */
 	case 0:
 		skb_put(skb, req->actual);
+
 		if (dev->unwrap) {
 			unsigned long	flags;
 
@@ -616,12 +617,34 @@ static void process_rx_w(struct work_struct *work)
 				|| ETH_HLEN > skb->len
 				|| (skb->len > ETH_FRAME_LEN &&
 				test_bit(RMNET_MODE_LLP_ETH, &dev->flags))) {
+#ifdef CONFIG_USB_NCM_SUPPORT_MTU_CHANGE
+		/*
+		  Need to revisit net->mtu  does not include header size incase of changed MTU
+		*/
+			if(!strcmp(dev->port_usb->func.name,"ncm")) {
+				if (status < 0
+					|| ETH_HLEN > skb->len
+					|| skb->len > (dev->net->mtu + ETH_HLEN)) {
+					printk(KERN_ERR "usb: %s  drop incase of NCM rx length %d\n",__func__,skb->len);
+				} else {
+					printk(KERN_ERR "usb: %s  Dont drop incase of NCM rx length %d\n",__func__,skb->len);
+					goto process_frame;
+				}
+			}
+#endif
 			dev->net->stats.rx_errors++;
 			dev->net->stats.rx_length_errors++;
+#ifndef CONFIG_USB_NCM_SUPPORT_MTU_CHANGE
 			DBG(dev, "rx length %d\n", skb->len);
+#else
+			printk(KERN_ERR "usb: %s Drop rx length %d\n",__func__,skb->len);
+#endif
 			dev_kfree_skb_any(skb);
 			continue;
 		}
+#ifdef CONFIG_USB_NCM_SUPPORT_MTU_CHANGE
+process_frame:
+#endif
 		if (test_bit(RMNET_MODE_LLP_IP, &dev->flags))
 			skb->protocol = ether_ip_type_trans(skb, dev->net);
 		else
@@ -684,15 +707,6 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 	case -ESHUTDOWN:		/* disconnect etc */
 		break;
 	case 0:
-		/*
-		 * Remove the header length, before updating tx_bytes in
-		 * net->stats, since when packet is received from network layer
-		 * this header is not added. So this will now give the exact
-		 * number of bytes sent to the host.
-		 */
-		if (req->num_sgs)
-			req->actual -= (req->num_sgs/2) * dev->header_len;
-
 		if (!req->zero)
 			dev->net->stats.tx_bytes += req->actual-1;
 		else
@@ -759,7 +773,11 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 				retval = usb_ep_queue(in, new_req, GFP_ATOMIC);
 				switch (retval) {
 				default:
+#ifndef CONFIG_USB_NCM_SUPPORT_MTU_CHANGE
 					DBG(dev, "tx queue err %d\n", retval);
+#else
+					printk(KERN_ERR"usb:%s tx queue err %d\n",__func__, retval);
+#endif
 					new_req->length = 0;
 					spin_lock(&dev->req_lock);
 					list_add_tail(&new_req->list,
@@ -1035,7 +1053,6 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	}
 
 	dev->tx_pkts_rcvd++;
-	dev->tx_bytes_rcvd += skb->len;
 	if (dev->gadget->sg_supported) {
 		skb_queue_tail(&dev->tx_skb_q, skb);
 		if (dev->tx_skb_q.qlen > tx_stop_threshold) {
@@ -1594,13 +1611,19 @@ struct eth_dev *gether_setup_name(struct usb_gadget *g, u8 ethaddr[ETH_ALEN],
 	if (get_ether_addr(dev_addr, net->dev_addr))
 		dev_warn(&g->dev,
 			"using random %s ethernet address\n", "self");
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
+	if (ethaddr != NULL) {
+		memcpy(dev->host_mac, ethaddr, ETH_ALEN);
+		printk(KERN_DEBUG "usb: set unique host mac\n");
+	}
+#else
 	if (get_ether_addr(host_addr, dev->host_mac))
 		dev_warn(&g->dev,
 			"using random %s ethernet address\n", "host");
 
 	if (ethaddr)
 		memcpy(ethaddr, dev->host_mac, ETH_ALEN);
-
+#endif
 	net->netdev_ops = &eth_netdev_ops;
 
 	SET_ETHTOOL_OPS(net, &ops);
@@ -1958,38 +1981,6 @@ const struct file_operations uether_stats_ops = {
 	.write = uether_stat_reset,
 };
 
-static int uether_bytes_rcvd_show(struct seq_file *s, void *unused)
-{
-	struct eth_dev *dev = s->private;
-
-	if (dev)
-		seq_printf(s, "%u\n", dev->tx_bytes_rcvd);
-
-	return 0;
-}
-
-static int uether_bytes_rcvd_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, uether_bytes_rcvd_show, inode->i_private);
-}
-
-static ssize_t uether_bytes_rcvd_reset(struct file *file,
-		const char __user *ubuf, size_t count, loff_t *ppos)
-{
-	struct seq_file *s = file->private_data;
-	struct eth_dev *dev = s->private;
-
-	dev->tx_bytes_rcvd = 0;
-
-	return count;
-}
-
-const struct file_operations uether_bytes_rcvd_ops = {
-	.open = uether_bytes_rcvd_open,
-	.read = seq_read,
-	.write = uether_bytes_rcvd_reset,
-};
-
 static void uether_debugfs_init(struct eth_dev *dev, const char *name)
 {
 	struct dentry *uether_dent;
@@ -2004,16 +1995,15 @@ static void uether_debugfs_init(struct eth_dev *dev, const char *name)
 				uether_dent, dev, &uether_stats_ops);
 	if (!uether_dfile || IS_ERR(uether_dfile))
 		debugfs_remove(uether_dent);
-
-	uether_dfile = debugfs_create_file("tx_bytes_rcvd", S_IRUGO | S_IWUSR,
-				uether_dent, dev, &uether_bytes_rcvd_ops);
-	if (!uether_dfile || IS_ERR(uether_dfile))
-		debugfs_remove_recursive(uether_dent);
+	dev->uether_dfile = uether_dfile;
 }
 
 static void uether_debugfs_exit(struct eth_dev *dev)
 {
-	debugfs_remove_recursive(dev->uether_dent);
+	debugfs_remove(dev->uether_dfile);
+	debugfs_remove(dev->uether_dent);
+	dev->uether_dent = NULL;
+	dev->uether_dfile = NULL;
 }
 
 static int __init gether_init(void)

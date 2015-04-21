@@ -189,6 +189,7 @@ struct msm_fb_data_type {
 	int panel_reconfig;
 
 	u32 dst_format;
+	int resume_state;
 	int panel_power_state;
 	struct disp_info_type_suspend suspend;
 
@@ -205,6 +206,9 @@ struct msm_fb_data_type {
 	u32 bl_scale;
 	u32 bl_min_lvl;
 	u32 unset_bl_level;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	u32 need_to_update_unset_bl_level;
+#endif
 	u32 bl_updated;
 	u32 bl_level_scaled;
 	u32 bl_level_prev_scaled;
@@ -291,16 +295,25 @@ static inline bool mdss_fb_is_power_on_lp(struct msm_fb_data_type *mfd)
 	return mdss_panel_is_power_on_lp(mfd->panel_power_state);
 }
 
-static inline bool mdss_fb_is_hdmi_primary(struct msm_fb_data_type *mfd)
-{
-	return (mfd && (mfd->index == 0) &&
-		(mfd->panel_info->type == DTV_PANEL));
-}
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+extern int poweroff_charging;
+#endif /* CONFIG_SAMSUNG_LPM_MODE */
+
+#if defined(CONFIG_FB_MSM_MIPI_SAMSUNG_OCTA_CMD_FHD_FA2_PT_PANEL)
+enum TE_SETTING {
+	TE_SET_INIT = -1,
+	TE_SET_READY,
+	TE_SET_START,
+	TE_SET_DONE,
+	TE_SET_FAIL,
+};
+#endif
 
 int mdss_fb_get_phys_info(dma_addr_t *start, unsigned long *len, int fb_num);
 void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl);
 void mdss_fb_update_backlight(struct msm_fb_data_type *mfd);
 int mdss_fb_wait_for_fence(struct msm_sync_pt_data *sync_pt_data);
+int mdss_fb_get_first_cmt_flag(void);
 void mdss_fb_signal_timeline(struct msm_sync_pt_data *sync_pt_data);
 struct sync_fence *mdss_fb_sync_get_fence(struct sw_sync_timeline *timeline,
 				const char *fence_name, int val);
@@ -311,4 +324,9 @@ int mdss_fb_do_ioctl(struct fb_info *info, unsigned int cmd,
 		     unsigned long arg);
 int mdss_fb_compat_ioctl(struct fb_info *info, unsigned int cmd,
 			 unsigned long arg);
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+extern u8 csc_update;
+extern u8 csc_change;
+#endif
+
 #endif /* MDSS_FB_H */

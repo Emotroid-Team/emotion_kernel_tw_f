@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,8 +13,11 @@
 #ifndef __HDMI_EDID_H__
 #define __HDMI_EDID_H__
 
-#include <linux/msm_hdmi.h>
+#include <mach/msm_hdmi_audio_codec.h>
 #include "mdss_hdmi_util.h"
+#if defined(CONFIG_MACH_TRLTE_LDU) || defined(CONFIG_MACH_TBLTE_LDU)
+#include <linux/sii8620.h>
+#endif
 
 struct hdmi_edid_init_data {
 	struct dss_io_data *io;
@@ -32,5 +35,7 @@ int hdmi_edid_get_audio_blk(void *edid_ctrl,
 void hdmi_edid_set_video_resolution(void *edid_ctrl, u32 resolution);
 void hdmi_edid_deinit(void *edid_ctrl);
 void *hdmi_edid_init(struct hdmi_edid_init_data *init_data);
-
+#if defined(CONFIG_SEC_MHL_SUPPORT)
+u32 hdmi_get_audio_ch(void);
+#endif
 #endif /* __HDMI_EDID_H__ */

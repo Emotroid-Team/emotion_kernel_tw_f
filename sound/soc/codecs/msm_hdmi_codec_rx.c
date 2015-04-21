@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,8 +17,7 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/soc.h>
-#include <sound/q6afe-v2.h>
-#include <linux/msm_hdmi.h>
+#include <mach/msm_hdmi_audio_codec.h>
 
 #define MSM_HDMI_PCM_RATES	SNDRV_PCM_RATE_48000
 
@@ -97,13 +96,13 @@ static int msm_hdmi_audio_codec_rx_dai_startup(
 	if (IS_ERR_VALUE(msm_hdmi_audio_codec_return_value)) {
 		dev_err(dai->dev,
 			"%s() HDMI core is not ready (ret val = %d)\n",
-			__func__, msm_hdmi_audio_codec_return_value);
+						__func__, msm_hdmi_audio_codec_return_value);
 		ret = msm_hdmi_audio_codec_return_value;
 	} else if (!msm_hdmi_audio_codec_return_value) {
-		dev_err(dai->dev,
-			"%s() HDMI cable is not connected (ret val = %d)\n",
-			__func__, msm_hdmi_audio_codec_return_value);
-		ret = -EAGAIN;
+				dev_err(dai->dev,
+				"%s() HDMI cable is not connected (ret val = %d)\n",
+				__func__, msm_hdmi_audio_codec_return_value);
+			ret = -EAGAIN;
 	}
 
 	return ret;
@@ -129,9 +128,9 @@ static int msm_hdmi_audio_codec_rx_dai_hw_params(
 			__func__, msm_hdmi_audio_codec_return_value);
 		return msm_hdmi_audio_codec_return_value;
 	} else if (!msm_hdmi_audio_codec_return_value) {
-		dev_err(dai->dev,
-			"%s() HDMI cable is not connected (ret val = %d)\n",
-			__func__, msm_hdmi_audio_codec_return_value);
+				dev_err(dai->dev,
+				"%s() HDMI cable is not connected (ret val = %d)\n",
+				__func__, msm_hdmi_audio_codec_return_value);
 		return -EAGAIN;
 	}
 
@@ -206,23 +205,6 @@ static struct snd_soc_dai_ops msm_hdmi_audio_codec_rx_dai_ops = {
 	.shutdown	= msm_hdmi_audio_codec_rx_dai_shutdown
 };
 
-static u32 msm_hdmi_audio_codec_silent_play(void *data)
-{
-	int rc;
-
-	struct msm_hdmi_audio_codec_rx_data *codec_data =
-		(struct msm_hdmi_audio_codec_rx_data *) data;
-
-	rc = codec_data->hdmi_ops.audio_info_setup(
-			codec_data->hdmi_core_pdev, 48000, 2, 0, 0, 0);
-	if (IS_ERR_VALUE(rc))
-		return rc;
-
-	afe_short_silence(100);
-
-	return 0;
-}
-
 static int msm_hdmi_audio_codec_rx_probe(struct snd_soc_codec *codec)
 {
 	struct msm_hdmi_audio_codec_rx_data *codec_data;
@@ -251,10 +233,6 @@ static int msm_hdmi_audio_codec_rx_probe(struct snd_soc_codec *codec)
 		kfree(codec_data);
 		return -ENODEV;
 	}
-
-	codec_data->hdmi_ops.play_silent_audio_callback =
-		msm_hdmi_audio_codec_silent_play;
-	codec_data->hdmi_ops.callback_data = codec_data;
 
 	if (msm_hdmi_register_audio_codec(codec_data->hdmi_core_pdev,
 				&codec_data->hdmi_ops)) {
