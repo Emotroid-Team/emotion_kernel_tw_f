@@ -2535,7 +2535,7 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	bool deferred_compaction = false;
 	bool contended_compaction = false;
 #ifdef CONFIG_SEC_OOM_KILLER
-	unsigned long oom_invoke_timeout = jiffies + HZ/32;
+	unsigned long oom_invoke_timeout = jiffies + HZ/50;
 #endif
 
 	/*
@@ -2703,7 +2703,7 @@ rebalance:
 			}
 
 #ifdef CONFIG_SEC_OOM_KILLER
-			oom_invoke_timeout = jiffies + HZ/32;
+			oom_invoke_timeout = jiffies + HZ/25;
 #endif
 			goto restart;
 		}

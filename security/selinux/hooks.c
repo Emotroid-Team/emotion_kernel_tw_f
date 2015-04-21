@@ -3686,13 +3686,7 @@ static void selinux_cred_free(struct cred *cred)
 	BUG_ON(cred->security && (unsigned long) cred->security < PAGE_SIZE);
 #ifdef CONFIG_TIMA_RKP_RO_CRED
 	if (tima_ro_page((unsigned long)cred)) {
-//#ifndef CONFIG_TIMA_RKP_COHERENT_TT
-		v7_flush_kern_dcache_area(&cred->security, 4);
-//#endif			
 		tima_send_cmd2((unsigned long) &cred->security, 7, 0x3f845221);
-//#ifndef CONFIG_TIMA_RKP_COHERENT_TT
-		v7_flush_kern_dcache_area(&cred->security, 4);
-//#endif
 	} else
 #endif /*CONFIG_TIMA_RKP_RO_CRED*/
 	cred->security = (void *) 0x7UL;
