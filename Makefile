@@ -163,8 +163,13 @@ CCACHE := ccache
 # Testflags for GCC 4.9.3 cortex_a15
 GCC_4.9.3_M = -munaligned-access -fno-pic -mfpu=neon-vfpv4
 GCC_4.9.3_K = -munaligned-access -mfpu=neon-vfpv4
-GCC_4.9.3_K_G = -munaligned-access -mfpu=neon-vfpv4 -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-GCC_4.9.3_HOSTCFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
+GCC_4.9.3_K_G = -munaligned-access -mfpu=neon-vfpv4 -fgraphite -ffast-math \
+                -fgcse-after-reload -fgcse-sm \
+		        -fgcse-las -ftree-loop-im -ftree-loop-ivcanon -fweb \
+		        -frename-registers -ftree-loop-linear -ftree-vectorize \
+		        -fmodulo-sched -ffast-math -funsafe-math-optimizations \
+		        -std=gnu89
+GCC_4.9.3_HOSTCFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89
 GCC_4.9.3_HOSTCXXFLAGS = -O2
 
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
@@ -359,8 +364,8 @@ CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-CFLAGS_MODULE   = $(GCC_4.9.3_M)
-AFLAGS_MODULE   =
+CFLAGS_MODULE   = -DMODULE $(GCC_4.9.3_K_G)
+AFLAGS_MODULE   = -DMODULE $(GCC_4.9.3_K_G)
 LDFLAGS_MODULE  = --strip-debug
 CFLAGS_KERNEL	= $(GCC_4.9.3_K_G)
 AFLAGS_KERNEL	=
@@ -610,6 +615,9 @@ ifneq ($(CONFIG_FRAME_WARN),0)
 KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
 endif
 
+# Tell gcc to never replace conditional load with a non-conditional one
+KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
+
 # Force gcc to behave correct even for buggy distributions
 ifndef CONFIG_CC_STACKPROTECTOR
 KBUILD_CFLAGS += $(call cc-option, -fno-stack-protector)
@@ -678,6 +686,12 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
 # conserve stack if available
 KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+
+# disallow errors like 'EXPORT_GPL(foo);' with missing header
+KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
+
+# require functions to have arguments in prototypes, not empty 'int foo()'
+KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
 
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
