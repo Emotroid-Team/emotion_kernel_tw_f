@@ -964,7 +964,7 @@ endif # CPU_FREQ_MSM
 config ZEN_DECISION
 	bool "Zen Decision: MSM Userspace Handler"
 	depends on SMP && FB
-	default y
+	default n
 	help
 	  MSM/Qcomm devices have multiple userspace applications that handle
 	  CPU hotplugging and frequency operations.
