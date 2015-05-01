@@ -41,6 +41,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_BIOSHOCK)	+= cpufreq_bioshock.o
 //obj-$(CONFIG_CPU_FREQ_GOV_SLIM)		+= cpufreq_slim.o
 //obj-$(CONFIG_CPU_FREQ_GOV_PSYCHO_ACTIVE)	+= cpufreq_psycho_active.o
 obj-$(CONFIG_CPU_FREQ_GOV_INTERACTIVE_PRO)	+= cpufreq_interactive_pro.o
+obj-$(CONFIG_CPU_FREQ_GOV_BARRY_ALLEN)	+= cpufreq_barry_allen.o
 obj-$(CONFIG_CPU_FREQ_GOV_COMMON)		+= cpufreq_governor.o
 obj-$(CONFIG_CPU_BOOST)			+= cpu-boost.o
 
