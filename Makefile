@@ -388,8 +388,8 @@ KBUILD_CFLAGS   := -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-sequence-point \
 		   -fno-delete-null-pointer-checks \
 		   -marm -mcpu=cortex-a15 -mtune=cortex-a15 -fno-pic \
-                   -fmodulo-sched -fmodulo-sched-allow-regmoves \
-                   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
+		   -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -ffast-math \
+		   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
 		   -fno-aggressive-loop-optimizations
 
 # L1/L2 cache size parameters
