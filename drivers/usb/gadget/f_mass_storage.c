@@ -3256,10 +3256,6 @@ static int create_lun_device(struct fsg_common *common,
 				pr_err("failed to open lun file.\n");
 				goto error_luns;
 			}
-		} else if (!curlun->removable && !curlun->cdrom) {
-			ERROR(common, "no file given for LUN%d\n", i);
-			rc = -EINVAL;
-			goto error_luns;
 		}
 	}
 
