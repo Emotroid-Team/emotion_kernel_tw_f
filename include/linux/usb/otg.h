@@ -121,16 +121,8 @@ otg_start_srp(struct usb_otg *otg)
 	return -ENOTSUPP;
 }
 
-static inline int
-otg_send_event(struct usb_otg *otg, enum usb_otg_event event)
-{
-	int ret = -ENOTSUPP;
-
-	if (otg && otg->send_event)
-		ret = otg->send_event(otg, event);
-
-	return ret;
-}
+/* Fix to OTG by Placiano */
+extern int otg_send_event(enum usb_otg_event event);
 
 /* for OTG controller drivers (and maybe other stuff) */
 extern int usb_bus_start_enum(struct usb_bus *bus, unsigned port_num);
