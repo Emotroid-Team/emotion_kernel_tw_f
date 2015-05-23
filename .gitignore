@@ -33,7 +33,7 @@ modules.builtin
 #*.patch
 *.lz4
 *.gcno
-*.tar
+#*.tar
 *.zip
 *.log
 *.rej
