@@ -203,13 +203,14 @@ arch/arm/configs/apq8084_placiano_defconfig
 arch/arm/configs/apq8084_emotion_defconfig
 arch/arm/configs/apq8084_nate_defconfig
 #arch/arm/configs/apq8084_sec_userdebug_defconfig
+bbuild.sh
+!boot.img-ramdisk.gz
 ramdisk.img
 compile.log
 construir_kernel.sh
 rehacer_kernel.sh
 repack.sh
 /releasetools
-/ramdisk
 /tmp
 clean.sh
 buildkernel.sh
