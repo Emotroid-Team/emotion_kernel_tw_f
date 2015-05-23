@@ -1,0 +1,20 @@
+BB=/sbin/busybox;
+
+if [ -f $1 ]; then
+	if [[ ! -z "$2" ]]; then
+		$BB echo "$2" > $1 2> /dev/null;
+        val=`$BB cat /data/.emotionkernel/kcal_sat`
+        val1=$(($val + 223))
+		if (("$2" == "1")); then
+		    $BB echo 128 > /sys/devices/platform/kcal_ctrl.0/kcal_sat 2> /dev/null;
+        else
+            $BB echo "$val1" > /sys/devices/platform/kcal_ctrl.0/kcal_sat 2> /dev/null;
+        fi;    
+		if [ "$1" == "/sys/devices/platform/kcal_ctrl.0/kcal" ] && [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_ctrl" ]; then
+			$BB echo 1 > /sys/devices/platform/kcal_ctrl.0/kcal_ctrl;
+		fi;
+	fi;
+	$BB echo "`$BB cat $1`"
+else
+	$BB echo "0";
+fi;

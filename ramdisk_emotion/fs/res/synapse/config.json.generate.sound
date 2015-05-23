@@ -1,0 +1,84 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:SOUND,
+    elements:[
+    	{ SDescription:{
+        	description:"Faux Sound Control. For full sound experience you can use <a href='https://play.google.com/store/apps/details?id=com.teamkang.fauxsound&hl=en'>FauxSound</a> apk",
+        	background:0
+        }},
+	{ SPane:{
+		title:"Gain Lock"
+	}},
+	{ SCheckBox:{
+		label:"Sound control lock",
+		description:"Have this off to have gain automatically lowered to protect your hardware",
+		default:`cat /sys/kernel/sound_control_3/gpl_sound_control_locked`,
+		action:"generic /sys/kernel/sound_control_3/gpl_sound_control_locked",
+	}},
+	{ SPane:{
+		title:"Digital output"
+	}},
+	{ SSeekBar:{
+		title:"Set Headphone Gain",
+		max:10,
+		min:-30,
+		step:1,
+		default:`echo $(/res/synapse/actions/output_head /sys/kernel/sound_control_3/gpl_headphone_gain)`,
+		action:"output_head /sys/kernel/sound_control_3/gpl_headphone_gain",
+	}},
+	{ SSeekBar:{
+		title:"Set Headphone PowerAmp Gain",
+		max:6,
+		min:-6,
+		step:1,
+		default:0,
+		action:"output_pwamp /data/.emotionkernel/gpl_headphone_pa_gain",
+	}},
+	{ SSeekBar:{
+		title:"Set Speaker Gain",
+		max:10,
+		min:-30,
+		step:1,
+		default:`echo $(/res/synapse/actions/output /sys/kernel/sound_control_3/gpl_speaker_gain)`,
+		action:"output /sys/kernel/sound_control_3/gpl_speaker_gain",
+	}},
+	{ SPane:{
+		title:"Digital input"
+	}},
+	{ SSeekBar:{
+		title:"Adjust microphone volume",
+		max:10,
+		min:-30,
+		step:1,
+		default:`echo $(/res/synapse/actions/input /sys/kernel/sound_control_3/gpl_mic_gain)`,
+		action:"input /sys/kernel/sound_control_3/gpl_mic_gain"
+	}},
+	{ SSeekBar:{
+		title:"Adjust camera microphone volume",
+		max:10,
+		min:-30,
+		step:1,
+		default:`echo $(/res/synapse/actions/input /sys/kernel/sound_control_3/gpl_cam_mic_gain)`,
+		action:"input /sys/kernel/sound_control_3/gpl_cam_mic_gain",
+	}},
+	{ SPane:{
+		title:"High performance Mode"
+	}},
+	{ SCheckBox:{
+		label:"Enable",
+		description:"Class AB mode for headphone 192Khz playback.",
+		default:`cat /sys/module/snd_soc_wcd9330/parameters/high_perf_mode`,
+		action:"generic /sys/module/snd_soc_wcd9330/parameters/high_perf_mode",
+	}},
+	{ SPane:{
+		title:""
+	}},
+	{ SButton:{
+		label:"Faux Sound Version",
+		action:"show sound"
+	}},
+    ]
+}
+CTAG

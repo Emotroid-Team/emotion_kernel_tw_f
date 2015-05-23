@@ -1,0 +1,33 @@
+#!/system/bin/sh
+
+cat << CTAG
+
+{
+    sections: [
+		`. /res/synapse/config.json.generate.live`
+		`. /res/synapse/config.json.generate.hardlimit`
+		`. /res/synapse/config.json.generate.cpu`
+		`. /res/synapse/config.json.generate.voltage`
+		`. /res/synapse/config.json.generate.gpu`
+		`. /res/synapse/config.json.generate.storage`
+		`. /res/synapse/config.json.generate.drivers`
+		`. /res/synapse/config.json.generate.therm`
+		`. /res/synapse/config.json.generate.misc`
+		`. /res/synapse/config.json.generate.ksm`
+		`. /res/synapse/config.json.generate.fast`
+		`. /res/synapse/config.json.generate.sound`
+		`. /res/synapse/config.json.generate.gamma`
+		`. /res/synapse/config.json.generate.led`
+		`. /res/synapse/config.json.generate.touchwake`
+		`. /res/synapse/config.json.generate.advanced`		
+		`. /res/synapse/config.json.generate.network`
+		`. /res/synapse/config.json.generate.vm`
+		`. /res/synapse/config.json.generate.bprop`
+		`. /res/synapse/config.json.generate.usb`
+		`. /res/synapse/config.json.generate.logs`
+		`. /res/synapse/config.json.generate.profile`
+		`. /res/synapse/config.json.generate.info`
+    ]
+}
+
+CTAG

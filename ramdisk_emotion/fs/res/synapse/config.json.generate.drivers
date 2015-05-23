@@ -1,0 +1,169 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:CPU DRIVERS,
+    elements:[
+	{ SPane:{
+		title:"CPU Core Control",
+		description:" Online status of every cpu core can now be configured to be handled by either mpdecision (normal) or forced to online or offline. By andip71"
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+       			title:"CPU Core 1",
+			description:"",
+			default:`cat /sys/devices/system/cpu/cpu1/online_control`,
+			action:"generic /sys/devices/system/cpu/cpu1/online_control",
+			values:{
+				"0":"MPDECISION_Controlled",
+				"1":"CPU_Online",
+				"2":"CPU_Offline",
+			}
+		}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+       			title:"CPU Core 2",
+			description:"",
+			default:`cat /sys/devices/system/cpu/cpu2/online_control`,
+			action:"generic /sys/devices/system/cpu/cpu2/online_control",
+			values:{
+				"0":"MPDECISION_Controlled",
+				"1":"CPU_Online",
+				"2":"CPU_Offline",
+			}
+		}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+       			title:"CPU Core 3",
+			description:"",
+			default:`cat /sys/devices/system/cpu/cpu3/online_control`,
+			action:"generic /sys/devices/system/cpu/cpu3/online_control",
+			values:{
+				"0":"MPDECISION_Controlled",
+				"1":"CPU_Online",
+				"2":"CPU_Offline",
+			}
+		}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SPane:{
+		title:" CPU Boost",
+		description:"",
+	}},
+        { SOptionList:{
+       		title:"Enable or disable CPU Boost.",
+			description:"Default On",
+			default:`cat /sys/module/cpu_boost/parameters/cpuboost_enable`,
+			action:"generic /sys/module/cpu_boost/parameters/cpuboost_enable",
+			values:{
+				"N":"Disabled",
+				"Y":"Enabled",
+			}
+		}},
+	{ SPane:{
+		title:"PowerSuspend",
+		description:" PowerSuspend driver is a replacement for the early_suspend/late_resume driver. Hybrid uses autosleep & display panel hook. Default is Hybrid."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/suspend powersuspend)`,
+		action:"suspend powersuspend",
+		values:[Userspace_trigger, DisplayPanel_hook,]
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SSeekBar:{
+		title:"PowerSuspend State",
+		description:" Kernel power management driver when screen is off. Better battery savings if enabled. Note: You can only change this setting if PowerSuspend Mode is set to Userspace_trigger.",
+		min:0,
+		max:1,
+		step:1,
+		default:`cat /sys/kernel/power_suspend/power_suspend_state`,
+		action:"suspend_state /sys/kernel/power_suspend/power_suspend_state"
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SButton:{
+		label:"PowerSuspend version",
+		action:"show susp"	
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SPane:{
+		title:"Intelli-Hotplug",
+		description:" An in-Kernel replacement for Qualcomm Hotplug MPDecision. Enabling this will disable MPDecision Hotplug.",
+		default:`cat /sys/module/intelli_plug/parameters/intelli_plug_active`,
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SCheckBox:{
+		label:"Enable Intelli-Hotplug",
+		action:"default hotplug"
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+		title:"Intelli-Hotplug Profile ",
+		default:`cat /sys/module/intelli_plug/parameters/nr_run_profile_sel`,
+		action:"generic /sys/module/intelli_plug/parameters/nr_run_profile_sel",
+		values:{
+			`PROF='0:"Balanced", 1:"Performance", 2:"Conservative", 3:"Eco Performance", 4:"Eco Conservative"'
+			echo $PROF`
+		}
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SSeekBar:{
+		title:"Set Hysteresis Value",
+		description:" Default is 8.",
+		max:16,
+		min:0,
+		step:1,
+		default:`cat /sys/module/intelli_plug/parameters/nr_run_hysteresis`,
+		action:"generic /sys/module/intelli_plug/parameters/nr_run_hysteresis",
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+		title:"Screen OFF Max Frequency",
+		description:" Default is Disabled.",
+		unit:" kHz",
+		default:`cat /sys/module/intelli_plug/parameters/screen_off_max`,
+		action:"generic /sys/module/intelli_plug/parameters/screen_off_max",
+		values:{
+			`SOMF='4294967295:"Disabled", 300000:"300000", 422400:"422400", 652800:"652800", 729600:"729600", 883200:"883200", 960000:"960000", 1036800:"1036800", 1190400:"1190400", 1267200:"1267200", 1497600:"1497600", 1574400:"1574400", 1728000:"1728000", 1958400:"1958400", 2265600:"2265600", 2457600:"2457600"'
+			echo $SOMF`
+		}
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SCheckBox:{
+		label:"Enable Touch Boost Active",
+		description:" Default is Enabled whilst Intelli-Hotplug is active.",
+		default:`cat /sys/module/intelli_plug/parameters/touch_boost_active`,
+		action:"generic /sys/module/intelli_plug/parameters/touch_boost_active",
+	}},
+	{ SButton:{
+		label:"Intelli-Plug version",
+		action:"show intelli"
+	}},
+    ]
+}
+CTAG

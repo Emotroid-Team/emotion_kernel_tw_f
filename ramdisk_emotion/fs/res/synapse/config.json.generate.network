@@ -1,0 +1,221 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:NETWORK,
+    elements:[
+    { SPane:{
+		title:"TCP Congestion Control",
+		description:" Select your preferred WIFI TCP algorithm. Regulates upload and download affecting throughput in various ways. Default is Westwood."
+    }},
+	{ SOptionList:{
+		default:`cat proc/sys/net/ipv4/tcp_congestion_control`,
+		action:"generic proc/sys/net/ipv4/tcp_congestion_control",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < proc/sys/net/ipv4/tcp_available_congestion_control`]
+	}},
+	{ SPane:{
+		title:"Hardening the TCP/IP stack to SYN attack",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_max_syn_backlog",
+		default:`cat /proc/sys/net/ipv4/tcp_max_syn_backlog`,
+		action:"generic /proc/sys/net/ipv4/tcp_max_syn_backlog",
+		values:{
+			`TCPMSB='128:"OFF", 1024:"ON"'
+			echo $TCPMSB`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_syn_retries",
+		default:`cat /proc/sys/net/ipv4/tcp_syn_retries`,
+		action:"generic /proc/sys/net/ipv4/tcp_syn_retries",
+		values:{
+			`TSR='6:"OFF", 2:"ON"'
+			echo $TSR`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_synack_retries",
+		default:`cat /proc/sys/net/ipv4/tcp_synack_retries`,
+		action:"generic /proc/sys/net/ipv4/tcp_synack_retries",
+		values:{
+			`TSKR='5:"OFF", 2:"ON"'
+			echo $TSKR`
+		}
+	}},
+	{ SPane:{
+		title:"Bump up tw_buckets in case we get DoS'd",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_max_tw_buckets",
+		default:`cat /proc/sys/net/ipv4/tcp_max_tw_buckets`,
+		action:"generic /proc/sys/net/ipv4/tcp_max_tw_buckets",
+		values:{
+			`TCPMTB='4096:"OFF", 16384:"ON"'
+			echo $TCPMTB`
+		}
+	}},
+	{ SPane:{
+		title:"Ignore pings",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.icmp_echo_ignore_all",
+		default:`cat /proc/sys/net/ipv4/icmp_echo_ignore_all`,
+		action:"generic /proc/sys/net/ipv4/icmp_echo_ignore_all",
+		values:{
+			`IEIA='0:"OFF", 1:"ON"'
+			echo $IEIA`
+		}
+	}},
+	{ SPane:{
+		title:"Don't cache connection metrics from previous connection",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_no_metrics_save",
+		default:`cat /proc/sys/net/ipv4/tcp_no_metrics_save`,
+		action:"generic /proc/sys/net/ipv4/tcp_no_metrics_save",
+		values:{
+			`TCPNMS='0:"OFF", 1:"ON"'
+			echo $TCPNMS`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_fin_timeout",
+		default:`cat /proc/sys/net/ipv4/tcp_fin_timeout`,
+		action:"generic /proc/sys/net/ipv4/tcp_fin_timeout",
+		values:{
+			`TCPFT='60:"OFF", 15:"ON"'
+			echo $TCPFT`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_keepalive_intvl",
+		default:`cat /proc/sys/net/ipv4/tcp_keepalive_intvl`,
+		action:"generic /proc/sys/net/ipv4/tcp_keepalive_intvl",
+		values:{
+			`TCPKAI='75:"OFF", 30:"ON"'
+			echo $TCPKAI`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_keepalive_probes",
+		default:`cat /proc/sys/net/ipv4/tcp_keepalive_probes`,
+		action:"generic /proc/sys/net/ipv4/tcp_keepalive_probes",
+		values:{
+			`TCPKAP='9:"OFF", 5:"ON"'
+			echo $TCPKAP`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.tcp_keepalive_time",
+		default:`cat /proc/sys/net/ipv4/tcp_keepalive_time`,
+		action:"generic /proc/sys/net/ipv4/tcp_keepalive_time",
+		values:{
+			`TCPKAT='7200:"OFF", 1800:"ON"'
+			echo $TCPKAT`
+		}
+	}},
+	{ SPane:{
+		title:"Don't pass traffic between networks or act as a router",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.all.send_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/all/send_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/all/send_redirects",
+		values:{
+			`CASR='1:"OFF", 0:"ON"'
+			echo $CASR`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.default.send_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/default/send_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/default/send_redirects",
+		values:{
+			`CDSR='1:"OFF", 0:"ON"'
+			echo $CDSR`
+		}
+	}},
+	{ SPane:{
+		title:"Enable spoofing protection (turn on reverse packet filtering)",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.all.rp_filter",
+		default:`cat /proc/sys/net/ipv4/conf/all/rp_filter`,
+		action:"generic /proc/sys/net/ipv4/conf/all/rp_filter",
+		values:{
+			`CARPF='0:"OFF", 1:"ON"'
+			echo $CARPF`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.default.rp_filter",
+		default:`cat /proc/sys/net/ipv4/conf/default/rp_filter`,
+		action:"generic /proc/sys/net/ipv4/conf/default/rp_filter",
+		values:{
+			`CDRPF='0:"OFF", 1:"ON"'
+			echo $CDRPF`
+		}
+	}},
+	{ SPane:{
+		title:"Don't accept source routing",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.default.accept_source_route",
+		default:`cat /proc/sys/net/ipv4/conf/default/accept_source_route`,
+		action:"generic /proc/sys/net/ipv4/conf/default/accept_source_route",
+		values:{
+			`CDASR='1:"OFF", 0:"ON"'
+			echo $CDASR`
+		}
+	}},
+	{ SPane:{
+		title:"Don't accept redirects",
+		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.all.accept_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/all/accept_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/all/accept_redirects",
+		values:{
+			`CAAR='1:"OFF", 0:"ON"'
+			echo $CAAR`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.default.accept_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/default/accept_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/default/accept_redirects",
+		values:{
+			`CDAR='1:"OFF", 0:"ON"'
+			echo $CDAR`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.all.secure_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/all/secure_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/all/secure_redirects",
+		values:{
+			`CAASECR='1:"OFF", 0:"ON"'
+			echo $CAASECR`
+		}
+	}},
+	{ SOptionList:{
+		title:"ipv4.conf.default.secure_redirects",
+		default:`cat /proc/sys/net/ipv4/conf/default/secure_redirects`,
+		action:"generic /proc/sys/net/ipv4/conf/default/secure_redirects",
+		values:{
+			`CDASECR='1:"OFF", 0:"ON"'
+			echo $CDASECR`
+		}
+	}},
+    ]
+}
+CTAG

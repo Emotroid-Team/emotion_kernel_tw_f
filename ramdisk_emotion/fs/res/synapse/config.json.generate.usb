@@ -1,0 +1,60 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:USB,
+    elements:[
+	{ SPane:{
+		title:"USB Mode",
+		description:" You require a supported PC OS with appropriate USB drivers installed."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:" ** WARNING **  When exiting USB Mass Storage Mode, be sure to EJECT your device from PC BEFORE re-enabling MTP_Mode VIA ROM SETTINGS or disconnecting ! This will help prevent any data loss or corruption."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:" * Don't forget to reset to DEFAULT so your ROM will mount MTP or PTP on next boot."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:"< DEFAULT >  Does NOTHING, so setting & applying it will allow the ROM SELECTED USB mode (MTP or PTP) on boot."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:"< MTP >  Media Transfer Protocol Mode allows you to mount both device internal & external storage to transfer files to PC."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:"< PTP >  Photo Transfer Protocol Mode allows you to mount both device internal & external storage to transfer photos and other files to PC that don't support MTP."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SDescription:{
+		description:"< UMS >  USB Mass Storage Mode allows you to mount only the EXTERNAL SD card as a disk for faster file transfer to PC."
+	}},
+	{ SSpacer:{
+		height:3
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/storage usb_mode)`,
+		action:"storage usb_mode",
+		values:[DEFAULT, MTP, PTP, UMS,]
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+    ]
+}
+CTAG

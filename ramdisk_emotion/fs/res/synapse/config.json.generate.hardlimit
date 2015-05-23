@@ -1,0 +1,124 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:HARD LIMIT,
+    elements:[
+	{ SPane:{
+		title:"MAX CPU Frequency Settings"
+	}},
+	{ SSeekBar:{
+		title:"MAX Screen ON scaling frequency",		
+		description:" Set the real hard CPU max frequency limit when screen is on. OC to max 3072 MHz. Be careful, your device may reboot if if cannot handle OC! Default is 2649.6 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/scaling_max_freq_screen_on`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/scaling_max_freq_screen_on",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SSeekBar:{
+		title:"MAX Screen OFF scaling frequency",		
+		description:" Set the real hard CPU max frequency limit when screen is off. Too low a setting may cause SOD, lag, stuttering or slow wake-up. Default is 2265.6 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/scaling_max_freq_screen_off`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/scaling_max_freq_screen_off",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SPane:{
+		title:"MIN CPU Frequency Settings"
+	}},
+	{ SSeekBar:{
+		title:"MIN Screen ON scaling frequency",		
+		description:" Set the real hard CPU min frequency limit when screen is on. Default is 268 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/scaling_min_freq_screen_on`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/scaling_min_freq_screen_on",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SSeekBar:{
+		title:"MIN Screen OFF scaling frequency",		
+		description:" Set the real hard CPU min frequency limit when screen is off. Too low a setting may cause SOD, lag, stuttering or slow wake-up. Default is 268 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/scaling_min_freq_screen_off`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/scaling_min_freq_screen_off",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SPane:{
+		title:"Wake Up Settings"
+	}},
+	{ SSeekBar:{
+		title:"Wake Up Kick frequency",		
+		description:" Set the wakeup kick frequency - scaling_min for delay time. Default is 1497.6 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/wakeup_kick_freq`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/wakeup_kick_freq",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SSeekBar:{
+		title:"Wake Up Kick Delay",		
+		description:" Set the wakeup kick duration in ms. Default is 0 ms.",
+		max:10000,
+		min:0,
+		step:250,
+		unit:" ms",
+		default:`cat /sys/kernel/cpufreq_hardlimit/wakeup_kick_delay`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/wakeup_kick_delay",
+	}},
+	{ SPane:{
+		title:"Touch Boost Frequency Settings"
+	}},
+	{ SSeekBar:{
+		title:"Touch Boost High frequency",		
+		description:" Set touchboost high frequency. Default is 1574,4 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/touchboost_hi_freq`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/touchboost_hi_freq",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SSeekBar:{
+		title:"Touch Boost Low frequency",		
+		description:" Set touchboost low frequency. Default is 1267.2 MHz.",
+		unit:" MHz",
+		weight:0.001,
+		default:`cat /sys/kernel/cpufreq_hardlimit/touchboost_lo_freq`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/touchboost_lo_freq",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies`]
+	}},
+	{ SPane:{
+		title:"Userspace DVFS Lock"
+	}},
+	{ SDescription:{
+		description:" If set to 1 or 2, userspace_dvfs_lock will prevent userspace (ROM as well as any APP, including CPU controlling apps) to change CPU min/max, that is normal and intended !",
+	}},
+	{ SDescription:{
+		description:" * 0 = allow changes to scaling min/max. Set this for benchmark junkies to OC up to 2.9 GHz with AnTuTu."
+	}},
+	{ SDescription:{
+		description:" * 1 = ignore (don't apply, but don't return an error)."
+	}},
+	{ SDescription:{
+		description:" * 2 = refuse (don't apply, return EINVAL)."
+	}},
+	{ SSeekBar:{
+		title:"Set userspace_dvfs_lock",		
+		description:" Default is 0.",
+		max:2,
+		min:0,
+		default:`cat /sys/kernel/cpufreq_hardlimit/userspace_dvfs_lock`,
+		action:"generic /sys/kernel/cpufreq_hardlimit/userspace_dvfs_lock",
+	}},
+	{ SPane:{
+		title:""
+	}},
+	{ SButton:{
+		label:"Version information",
+		action:"show hard"
+	}},
+	]
+}
+CTAG

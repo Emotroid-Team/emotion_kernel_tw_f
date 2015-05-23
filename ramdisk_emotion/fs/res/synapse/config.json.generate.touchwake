@@ -1,0 +1,44 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:"SCREEN/MISC",
+    elements:[
+	{ SPane:{
+		title:"Sweep2Wake Control",
+		description:"\n\tSettings pertaining to Sweep2Wake.\n\n\tLock your device sliding your finger from left to right until half the screen .\n"
+        }},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/touch wake)`,
+		action:"touch wake",
+		values:[Off, s2w+s2s, s2s,]
+	}},
+	{ SPane:{
+		title:"Cypress-Touchkey",
+		description:"\n\tKey disabler.\n\n\tIf you want to use soft keys you can disable the cypress-touchkey.\n"
+        }},
+        { SOptionList:{
+       		title:"Enable or disable Cypress-Touchkey.",
+		description:"Default On",
+		default:`cat /sys/class/sec/sec_touchkey/keypad_enable`,
+		action:"generic /sys/class/sec/sec_touchkey/keypad_enable",
+		values:{
+			"0":"Disabled",
+			"1":"Enabled",
+			}
+		}},
+{ SPane:{
+		title:"Vibration strength control",
+		description:""
+        }},
+        	{ SSeekBar:{
+		title:"Vibration Control",
+		min:-10,
+		max:200,
+		step:1,
+		default:`cat /sys/class/timed_output/vibrator/pwm_value`,
+		action:"generic /sys/class/timed_output/vibrator/pwm_value"
+	}},
+    ]
+}
+CTAG

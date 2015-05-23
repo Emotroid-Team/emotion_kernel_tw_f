@@ -1,0 +1,112 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:INFO - Reboot,
+    elements:[
+	{ SPane:{
+		title:"Source",
+		description:"Based on Samsung N910FXXU1BOB4 Lollipop."
+	}},
+	{ SPane:{
+		title:"Special Features",
+		description:" CPU Voltage control,
+		GPU control,
+		OC/UC,
+		Init.d,
+		Selinux Permissive,
+		Led control,
+		Faux Sound control,
+		Charger control,
+		DynamicFsync,
+		Sweep2Wake,
+		Synapse,
+		CRC Disabler,
+		Intelli-Plug,
+		Intelli-Thermal,
+		KSM,
+		.... "
+	}},
+	{ SPane:{
+		title:"Special Thanks to",
+		description:"Andip71, AndreiLux, apb_axel, Civato, Christopher83, DerTeufel, Faux123, Ffolkes, Flar2, Franciscofranco, Franlov, Friedrich420, Gokhanmoral, Infernum, LoungeKatt (TwistedUmbrella), Vanito, Yank555.lu, ZaneZam - and all users that support the thread and the kernel"
+	}},
+	{ SPane:{
+		title:"Source",
+		description:" Source code: <a href='https://github.com/Note4-TW-Kernel/emotion_kernel_tw_f'>GitHub</a>"
+	}},
+	{ SPane:{
+		title:"Kernel Thread",
+		description:"Official thread; <a href='http://goo.gl/mIFePv'>HtcSpain</a> and <a href='http://goo.gl/IU6LBm'>XDA-Developers</a> "
+	}},
+	{ SPane:{
+		title:"User Tip",
+		description:"Use Wanam Xposed and turn off DVFS or user DVFS Module(standalone) (dynamic voltage and frequency scaling), this feature was kept in touchwiz for benchmark boosting purposes and will conflict with any undervolting and custom governors because it scales the voltages and frequency on regular intervals and is framework integrated, so gets a higher priority than kernel based voltage and scaling controls. Disable DVFS using Wanam's <a href='https://play.google.com/store/apps/details?id=ma.wanam.dvfs&hl=es'>DVFS Disabler</a> app "
+	}},
+	{ SPane:{
+		title:"Build by",
+		description:"*Emotroid Team - <a href='https://twitter.com/alvaro10CCF'>@Alvaro10ccf</a> <a href='https://twitter.com/Akramullakhan'>@Aukhan</a> @Hanss @Infernum <a href='https://twitter.com/ivaneb_4'>@Ivanebdesign</a> <a href='https://twitter.com/JCanonico_ET'>@Jcanonico</a> @Kabata @Motomorini <a href='https://twitter.com/Pafcholini'>@Pafcholini</a> <a href='https://twitter.com/placiano_smali'>@Placiano</a> <a href='https://twitter.com/varobejar'>@Regaña</a> <a href='https://twitter.com/rimgoru'>@Rimgoru</a> *"
+	}},
+	{ SButton:{
+		label:"Linux info",
+		action:"show kernel"
+	}},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"default version"
+	}},
+	{ SButton:{
+		label:"Fast Charge Info",
+		action:"show fast"	
+	}},
+	{ SButton:{
+		label:"DynamicFsync version",
+		action:"show dyna"
+	}},
+	{ SPane:{
+		title:"Build"
+	}},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"default build"
+	}},
+	{ SPane:{
+		title:"Baseband"
+	}},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"default baseband"
+	}},
+	{ SPane:{
+		title:"Bootloader"
+	}},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"default bootloader"
+	}},
+
+	{ SPane:{
+		title:"Serial"
+	}},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"default serial"
+	}},
+	{ SPane:{
+		title:"Reboot"
+	}},
+	{ SButton:{
+		label:"Reboot Device",
+		action:"devtools reboot"
+	}},
+	{ SButton:{
+		label:"Reboot to Recovery",
+		action:"devtools reboot recovery"
+	}},
+	{ SButton:{
+		label:"Reboot to Download Mode",
+		action:"devtools reboot bootloader"
+	}}
+    ]
+}
+CTAG

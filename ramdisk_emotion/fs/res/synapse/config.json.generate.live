@@ -1,0 +1,82 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:LIVE STATISTICS,
+    elements:[
+	{ SPane:{
+		title:"CPU Activity",
+		description:"Live CPU status."
+	}},
+	{ SLiveLabel:{
+	title:"CPU Frenquency",
+		refresh:500,
+		action:"show freq"
+	}},
+        { SLiveLabel:{
+                  title:"Current CPU Cores Online",
+                  refresh:500,
+                  action:"echo \$(( \$(cat /sys/devices/system/cpu/cpu0/online) + \$(cat /sys/devices/system/cpu/cpu1/online) + \$(cat /sys/devices/system/cpu/cpu2/online) + \$(cat /sys/devices/system/cpu/cpu3/online) )) core\\\\(s\\\\)"
+        }},
+	{ SLiveLabel:{
+		refresh:1000,
+		action:"show cpufreq"
+	}},
+    	{ SLiveLabel:{
+                  title:"CPU & Battery Temperatures",
+                  description:"Current Battery and CPU temperature.",
+                  refresh:1000,
+                  action:"show temp"
+        }},
+	{ SLiveLabel:{
+		refresh:10000,
+		action:"show battinfo"
+	}},
+	{ SPane:{
+		title:"GPU Activity",
+		description:"Live GPU status."
+	}},
+	{ SLiveLabel:{
+		title:"GPU Frenquency",
+		refresh:1000,
+		action:"show gpu"
+	}},
+	{ SPane:{
+		title:"Uptime",
+		description:"."
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveUpTime"
+	}},
+	{ SPane:{
+		title:"Unused CPU States",
+		description:""
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveUnUsed"
+	}},
+	{ SPane:{
+		title:"Time in States",
+		description:""
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveTime 0 9"
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveTime 10 19"
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveTime 20 29"
+	}},
+	{ SLiveLabel:{
+		refresh:0,
+		action:"show LiveTime 30 39"
+	}},
+	]
+}
+CTAG

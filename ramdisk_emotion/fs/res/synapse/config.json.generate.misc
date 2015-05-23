@@ -1,0 +1,71 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:MISCELLANEOUS,
+    elements:[
+	{ SPane:{
+		title:"Dynamic FSYNC Driver",
+		description:"While screen is on file sync is disabled, when screen is off a file sync is called to flush all outstanding writes and restore file sync operation as normal."
+	}},
+	{ SOptionList:{
+		label:"Enable or disable dynamic fsync",
+		description:"Default Off",
+		default:`cat /sys/kernel/dyn_fsync/Dyn_fsync_active`,
+		action:"generic /sys/kernel/dyn_fsync/Dyn_fsync_active",
+		values:{
+			"0":"Disabled",
+			"1":"Enabled",
+			}
+	}},
+	{ SPane:{
+	title:"Logger Mode",
+	description:"Sysfs interface to enable or disable Android Logger. Disabling Logger mode is another easy way to improve performance. If you need to make logcat then enable it."
+        }},
+        { SOptionList:{
+       		title:"Enable or disable Logger mode.",
+		description:"Default Off",
+		default:`cat /sys/kernel/logger_mode/logger_mode`,
+		action:"generic /sys/kernel/logger_mode/logger_mode",
+		values:{
+			"0":"Disabled",
+			"1":"Enabled",
+			}
+		}},
+	{ SPane:{
+		title:" CRC Settings",
+		description:"\n\tEnabling software CRCs on the data blocks can be a significant (30%) performance cost, and for other reasons may not always be desired. CRC is a mechanism aiming to prevent data corruption when enabled (reduce the performance around 30%). So if you disable it (improve the performance), there may be a chance you run into problems. Use it at your risk.\n\n",
+	}},
+        { SOptionList:{
+       		title:"Enable or disable CRC.",
+			description:"Default On",
+			default:`cat /sys/module/mmc_core/parameters/crc`,
+			action:"generic /sys/module/mmc_core/parameters/crc",
+			values:{
+				"0":"Disabled",
+				"1":"Enabled",
+			}
+		}},
+	{ SPane:{
+		title:"SELinux Status",
+		description:"Allows you to change your SELinux (Security-Enhanced Linux) Status from Enforcing (policy is enforced) to Permissive (prints warnings instead of enforcing).",
+	}},
+	{ SOptionList:{
+		default:`getenforce`,
+		action:"devtools selinux",
+		values:[ Enforcing, Permissive
+			],
+		}},
+	{ SPane:{
+		title:"Optimize Databases"
+		}},
+	{ SDescription:{
+		description:"Use this button to defrag/reindex all databases found in /data & /sdcard, this increases database read/write performance. NOTE: This process can take from 1-2 minutes."
+		}},
+	{ SButton:{
+		label:"Optimize Databases",
+		action:"devtools optimizedb"
+		}},
+    ]
+}
+CTAG

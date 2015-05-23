@@ -1,0 +1,183 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+	name:GAMMA,
+		elements:[
+			`if [ -d "/sys/devices/platform/kcal_ctrl.0" ]; then
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_enable" ]; then
+				KCALE=\`$BB cat /sys/devices/platform/kcal_ctrl.0/kcal_enable\`;
+					$BB echo '{ SPane:{
+						title:"KCAL",
+					}},
+						{ SCheckBox:{
+							label:"Enable",
+							description:"Enables/Disables RGB Multiplier Control",
+							default:'$KCALE',
+							action:"gamma /sys/devices/platform/kcal_ctrl.0/kcal_enable",
+						}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal" ]; then
+				KCAL=\`$BB cat /sys/devices/platform/kcal_ctrl.0/kcal\`;
+					$BB echo '{ SPane:{
+						title:"Values",
+					}},
+						{ SGeneric:{
+							title:"KCAL",
+							description:"Controls R/G/B Multipliers. Restart Synapse to change values.",
+							default:'$KCAL',
+							action:"gamma /sys/devices/platform/kcal_ctrl.0/kcal",
+						}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_invert" ]; then
+				KCALINV=\`$BB cat /sys/devices/platform/kcal_ctrl.0/kcal_invert\`;
+					$BB echo '{ SCheckBox:{
+						label:"KCAL inverted colors",
+						description:"Enables/Disables Display Inversion Mode",
+						default:'$KCALINV',
+						action:"gamma /sys/devices/platform/kcal_ctrl.0/kcal_invert"
+					}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_sat" ]; then
+				KCALGRAY=\`$BB cat /data/.emotionkernel/kcal_graychk\`;
+					$BB echo '{ SCheckBox:{
+						label:"KCAL Grayscale Display",
+						description:"Enables/Disables Grayscale Display Mode",
+						default:'$KCALGRAY',
+						action:"gamma_gray /data/.emotionkernel/kcal_graychk"
+					}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_min" ]; then
+				KM=\`$BB cat /sys/devices/platform/kcal_ctrl.0/kcal_min\`
+					$BB echo '{ SSeekBar:{
+						title:"KCAL Min",
+						description:"Controls minimum RGB Multiplier value.",
+						min:0,
+						max:256,
+						step:1,
+						default:'$KM',
+						action:"gamma /sys/devices/platform/kcal_ctrl.0/kcal_min"
+					}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_cont" ]; then
+				KCALCONT=\`$BB cat /data/.emotionkernel/kcal_cont\`;
+					$BB echo '{ SSeekBar:{
+						title:"Contrast",
+						description:"Controls display contrast.",
+						min:0,
+						max:256,
+						step:1,
+						default:'$KCALCONT',
+						action:"gamma_cont /sys/devices/platform/kcal_ctrl.0/kcal_cont",
+					}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_hue" ]; then
+				KCALHUE=\`$BB cat /sys/devices/platform/kcal_ctrl.0/kcal_hue\`;
+					$BB echo '{ SSeekBar:{
+						title:"Hue",
+						description:"Controls display hue.",
+						min:0,
+						max:1536,
+						step:1,
+						default:'$KCALHUE',
+						action:"gamma /sys/devices/platform/kcal_ctrl.0/kcal_hue",
+					}},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_sat" ]; then
+		        KCALSAT=\`$BB cat /data/.emotionkernel/kcal_sat\`;
+				    $BB echo '{ SSeekBar:{
+					    title:"Saturation",
+					    description:"Controls saturation intensity.",
+					    min:0,
+					    max:160,
+					    step:1,
+					    default:'$KCALSAT',
+					    action:"gamma_sat /sys/devices/platform/kcal_ctrl.0/kcal_sat",
+				    }},'
+				fi
+				if [ -f "/sys/devices/platform/kcal_ctrl.0/kcal_val" ]; then
+				KCALVAL=\`$BB cat /data/.emotionkernel/kcal_val\`;
+					$BB echo '{ SSeekBar:{
+						title:"Value",
+						description:"Controls display value.",
+						min:0,
+						max:256,
+						step:1,
+						default:'$KCALVAL',
+						action:"gamma_val /sys/devices/platform/kcal_ctrl.0/kcal_val",
+					}},'
+				fi
+			fi`
+							{ SPane:{
+					title:"Gamma Profiles",
+					description:"After you apply a profile, turn screen Off/On to update."
+				}},
+					{ SOptionList:{
+						default:"Custom",
+						action:"restorebackup applygamma",
+						values:[ "Custom",
+							`for PLACIANO in \`res/synapse/actions/restorebackup listgamma\`; do
+								echo "\"$PLACIANO\","
+							done`
+						],
+						notify:[
+							{
+								on:APPLY,
+								do:[ REFRESH, APPLY ],
+								to:[
+									"gamma /data/.emotionkernel/gamma_prof",
+									"gamma /sys/devices/platform/kcal_ctrl.0/kcal",
+									"gamma /sys/devices/platform/kcal_ctrl.0/kcal_min",
+									"gamma_cont /sys/devices/platform/kcal_ctrl.0/kcal_cont",
+									"gamma /sys/devices/platform/kcal_ctrl.0/kcal_hue",
+									"gamma_sat /sys/devices/platform/kcal_ctrl.0/kcal_sat",
+									"gamma_val /sys/devices/platform/kcal_ctrl.0/kcal_val",
+								]
+							}
+						]
+					}},
+				{ SPane:{
+					title:"Gamma Actions",
+				}},
+					{ SButton:{
+						label:"Delete Selected Profile",
+						action:"restorebackup deletegamma",
+						notify:[
+							{
+								on:APPLY,
+								do:[ RESET, APPLY ],
+								to:"gamma /data/.emotionkernel/gamma_prof"
+							}
+						]
+					}},
+					{ SGeneric:{
+						title:"Profile Name",
+						default:"Custom",
+						action:"gamma /data/.emotionkernel/gamma_prof",
+					}},
+						{ SDescription:{
+							description:"First set a name above and apply. After this you can press the Backup Current Profile button below."
+						}},
+						{ SButton:{
+							label:"Backup Current Profile",
+							action:"restorebackup keepgamma",
+							notify:[
+								{
+									on:APPLY,
+									do:[ REFRESH, APPLY ],
+									to:"gamma /data/.emotionkernel/gamma_prof"
+								}
+							]
+						}},
+				{ SPane:{
+					title:"General Actions",
+					description:"To update/refresh lists, select Restart Synapse below."
+				}},
+					{ SButton:{
+						label:"Restart Synapse",
+						action:"restorebackup restart"
+					}},
+
+		]
+}
+CTAG

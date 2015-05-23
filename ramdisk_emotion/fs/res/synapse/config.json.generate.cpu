@@ -1,0 +1,93 @@
+#!/system/bin/sh
+
+cat << CTAG
+{
+    name:CPU - GOV,
+    elements:[
+	{ SPane:{
+		title:"CPU SCALING",
+		description:" "
+	}},
+	{ SSeekBar:{
+       		title:"CPU Governor Maximum Frequency",
+		description:"Set the maximum freqency the CPU governor will scale up to.\n",
+		default:`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq`,
+		action:"generic /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq",
+		values:{
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL} MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+		}},
+		{ SSpacer:{
+		   height:1
+		}},
+		{ SSeekBar:{
+       		title:"CPU Governor Minimum Frequency",
+		description:"Set the minimum freqency the CPU governor will scale down to.\n",
+		default:`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq`,
+		action:"generic /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq",
+		values:{
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL} MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+		}},
+	{ SPane:{
+		title:"CPU GOVERNOR",
+		description:"The CPU governor determines how the CPU behaves in response to changes in workload."
+	}},
+	{ SOptionList:{
+		default:`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`,
+                action:"governor /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors`]
+	}},
+		{ SPane:{
+		title:"Governor tunables",
+		description:"The various configuration items which are governor-dependent."
+        }},
+	{ STreeDescriptor:{
+		path:"/sys/devices/system/cpu/cpufreq",
+		generic: {
+			directory: {
+				STreeDescriptor:{
+					generic: {
+						directory: {},
+						element: {
+							SGeneric: { title:"@NAME" }
+						}
+					},
+					matched: {
+						elements: [
+							{ "sampling_rate" : {
+								SSeekBar: {
+									title:"Sampling rate",
+									description:"The sampling rate controls the frequency in which the governor polls for frequency changes.",
+									min:50000, max:200000, step:10000, unit:" ms"
+								}
+							}}
+						]
+					},
+					exclude: [
+						"cpu_utilization",
+						"sampling_rate_min",
+						"sampling_rate_current",
+						"profile",
+						"boostpulse",
+						"up_threshold_h",
+						"up_threshold_l"
+					]
+				}
+			}
+		},
+		exclude: ["cpufreq_limit", "stats", "iks-cpufreq" ]
+	}},
+	]
+}
+CTAG
