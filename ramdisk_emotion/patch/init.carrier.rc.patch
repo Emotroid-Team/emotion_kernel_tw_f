@@ -1,0 +1,35 @@
+From 3cd7247194e1bce3c60204714e460692d4b507df Mon Sep 17 00:00:00 2001
+From: placiano <placiano80@gmail.com>
+Date: Sat, 23 May 2015 16:59:12 +0200
+Subject: [PATCH] patch init.carrier.rc
+
+---
+ init.carrier.rc | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/init.carrier.rc b/init.carrier.rc
+index f51c2fe..b65d8d2 100755
+--- a/init.carrier.rc
++++ b/init.carrier.rc
+@@ -161,12 +161,12 @@ service tbased /system/bin/tbased
+     oneshot
+ 
+ # SSWAP
+-service swapon /sbin/sswap -s
+-    class core
+-    user root
+-    group root
+-    seclabel u:r:sswap:s0
+-    oneshot
++#service swapon /sbin/sswap -s
++#    class core
++#    user root
++#    group root
++#    seclabel u:r:sswap:s0
++#    oneshot
+ 
+ # Bluetooth dhcpcd config
+ service dhcpcd_bt-pan /system/bin/dhcpcd -ABKL
+--
+libgit2 0.22.2
+

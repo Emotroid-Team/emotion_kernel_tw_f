@@ -1,0 +1,42 @@
+From 3491804243ab6241142bbcf57d600b44e65a71e0 Mon Sep 17 00:00:00 2001
+From: placiano <placiano80@gmail.com>
+Date: Sat, 23 May 2015 16:59:45 +0200
+Subject: [PATCH] patch init.rc
+
+---
+ init.rc | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/init.rc b/init.rc
+index c449630..8ca7abd 100755
+--- a/init.rc
++++ b/init.rc
+@@ -10,12 +10,12 @@ import /init.${ro.hardware}.rc
+ import /init.${ro.zygote}.rc
+ import /init.trace.rc
+ import /init.carrier.rc
+-import /init.container.rc
++#import /init.container.rc
+ import /init.rilcarrier.rc
+ 
+ on early-init
+     # Set init and its forked children's oom_adj.
+-    write /proc/1/oom_adj -16
++    write /proc/1/oom_score_adj -1000
+ 
+     # Apply strict SELinux checking of PROT_EXEC on mmap/mprotect calls.
+     write /sys/fs/selinux/checkreqprot 0
+@@ -1645,3 +1645,9 @@ service sysprof /system/bin/sysprof -f /data/local/tmp/.sysprofctrl -o /data/loc
+     group root
+     disabled
+     oneshot
++
++# init Emotion Kernel
++service emotioninit /sbin/emotion.sh
++    class main
++    user root
++    oneshot
+\ No newline at end of file
+--
+libgit2 0.22.2
+
