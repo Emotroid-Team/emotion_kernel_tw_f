@@ -214,7 +214,7 @@ repack.sh
 /tmp
 clean.sh
 buildkernel.sh
-repack.sh
+/repack
 mkbootfs
 .gitignore
 /patches
