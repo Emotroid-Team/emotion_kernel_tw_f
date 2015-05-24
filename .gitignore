@@ -229,6 +229,7 @@ mkbootfs
 0
 out
 output
+!/ramdisk_emotion/fs/res/synapse/actions/output
 
 boot.img
 recovery.img
