@@ -1,9 +1,7 @@
-BB=/sbin/busybox;
 
 case $1 in
 usb_mode)
-  $BB mount -t rootfs -o remount,rw rootfs;
-  P=/res/synapse/files/mass_storage
+  P=/data/.emotionkernel/mass_storage
   if [ ! -z $2 ]; then
   if [ $2 == DEFAULT ]; then
     echo 0 > $P
@@ -55,7 +53,6 @@ usb_mode)
     echo PTP
   elif [ $copy == 3 ]; then
     echo UMS
-  $BB mount -t rootfs -o remount,ro rootfs;
   fi
   ;;
 esac

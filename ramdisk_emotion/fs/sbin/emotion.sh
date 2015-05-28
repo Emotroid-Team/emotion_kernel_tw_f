@@ -99,6 +99,7 @@ if [ ! -f /data/.emotionkernel/bck_prof ]; then
 	cp -f /res/synapse/files/gammaplaciano_prof /data/.emotionkernel/gammaplaciano_prof
 	cp -f /res/synapse/files/gamma_prof /data/.emotionkernel/gamma_prof
 	cp -f /res/synapse/files/lmk_prof /data/.emotionkernel/lmk_prof
+	cp -f /res/synapse/files/mass_storage /data/.emotionkernel/mass_storage
 fi
 
 stop thermal-engine
