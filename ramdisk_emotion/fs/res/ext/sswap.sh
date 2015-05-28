@@ -17,9 +17,9 @@ ZSWAPSIZE=1424
 
 if [ $ZSWAPSIZE -gt 0 ]; then
 echo `expr $ZSWAPSIZE \* 1024 \* 1024` > /sys/devices/virtual/block/vnswap0/disksize
-/sbin/busybox swapoff /dev/block/vnswap0 > /dev/null 2>&1
-/sbin/busybox mkswap /dev/block/vnswap0 > /dev/null 2>&1
-/sbin/busybox swapon /dev/block/vnswap0 > /dev/null 2>&1
+/system/xbin/busybox swapoff /dev/block/vnswap0 > /dev/null 2>&1
+/system/xbin/busybox mkswap /dev/block/vnswap0 > /dev/null 2>&1
+/system/xbin/busybox swapon /dev/block/vnswap0 > /dev/null 2>&1
 fi
 sync
 

@@ -7,12 +7,8 @@ export PATH
 mount -o remount,rw -t auto /system
 mount -t rootfs -o remount,rw rootfs
 
-if [ ! -f /system/xbin/busybox ]; then
-rm -rf /system/xbin/busybox
-fi
-
-if [ ! -f /system/bin/busybox ]; then
-rm -rf /system/bin/busybox
+if [ -f /system/xbin/busybox ]; then
+ln -s /system/xbin/busybox /sbin/busybox
 fi
 
 cp -f /sbin/busybox /system/xbin/busybox
