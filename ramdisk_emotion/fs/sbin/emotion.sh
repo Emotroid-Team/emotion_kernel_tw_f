@@ -27,6 +27,9 @@ sync
 #SSWAP to 1.4gb
 /res/ext/sswap.sh
 
+# Execute setenforce to permissive (workaround as it is already permissive that time)
+/system/bin/setenforce 0
+
 # Allow untrusted apps to read from debugfs (mitigate SELinux denials)
 /system/xbin/supolicy --live \
 	"allow untrusted_app debugfs file { open read getattr }" \
