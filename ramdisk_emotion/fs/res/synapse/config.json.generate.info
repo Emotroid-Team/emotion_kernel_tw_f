@@ -6,7 +6,7 @@ cat << CTAG
     elements:[
 	{ SPane:{
 		title:"Source",
-		description:"Based on Samsung N910FXXU1BOB4 Lollipop."
+		description:"Based on Samsung N910FXXU1BOC3 Lollipop."
 	}},
 	{ SPane:{
 		title:"Special Features",
@@ -29,11 +29,11 @@ cat << CTAG
 	}},
 	{ SPane:{
 		title:"Special Thanks to",
-		description:"Andip71, AndreiLux, apb_axel, Civato, Christopher83, DerTeufel, Faux123, Ffolkes, Flar2, Franciscofranco, Franlov, Friedrich420, Gokhanmoral, Infernum, LoungeKatt (TwistedUmbrella), Vanito, Yank555.lu, ZaneZam - and all users that support the thread and the kernel"
+		description:"Andip71, AndreiLux, apb_axel, Civato, Christopher83, DerTeufel, Faux123, Ffolkes, Flar2, Franciscofranco, Franlov, Friedrich420, Gokhanmoral, Infernum, Javilonas, LoungeKatt (TwistedUmbrella), Vanito, Yank555.lu, ZaneZam - and all users that support the thread and the kernel"
 	}},
 	{ SPane:{
 		title:"Source",
-		description:" Source code: <a href='https://github.com/Note4-TW-Kernel/emotion_kernel_tw_f'>GitHub</a>"
+		description:" Source code: <a href='https://github.com/Emotroid-Team/emotion_kernel_tw_f'>GitHub</a>"
 	}},
 	{ SPane:{
 		title:"Kernel Thread",
