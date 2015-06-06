@@ -3,21 +3,48 @@
 PATH=/sbin:/system/sbin:/system/bin:/system/xbin
 export PATH
 
+BBX=/system/xbin/busybox
+
 # Inicio
 mount -o remount,rw -t auto /system
 mount -t rootfs -o remount,rw rootfs
 
-if [ -f /system/xbin/busybox ]; then
-ln -s /system/xbin/busybox /sbin/busybox
+if [ -f $BBX ]; then
+	chown 0:2000 $BBX
+	chmod 0755 $BBX
+	$BBX --install -s /system/xbin
+	ln -s $BBX /sbin/busybox
+	ln -s $BBX /system/bin/busybox
+	sync
 fi
 
-cp -f /sbin/busybox /system/xbin/busybox
+# Set environment and create symlinks: /bin, /etc, /lib, and /etc/mtab
+set_environment ()
+{
+	# create /bin symlinks
+	if [ ! -e /bin ]; then
+		$BBX ln -s /system/bin /bin
+	fi
 
-/system/xbin/busybox --install -s /system/xbin
+	# create /etc symlinks
+	if [ ! -e /etc ]; then
+		$BBX ln -s /system/etc /etc
+	fi
 
-ln -s /system/xbin/busybox /system/bin/busybox
+	# create /lib symlinks
+	if [ ! -e /lib ]; then
+		$BBX ln -s /system/lib /lib
+	fi
 
-sync
+	# symlink /etc/mtab to /proc/self/mounts
+	if [ ! -e /system/etc/mtab ]; then
+		$BBX ln -s /proc/self/mounts /system/etc/mtab
+	fi
+}
+
+if [ -x $BBX ]; then
+	set_environment
+fi
 
 #Supersu
 /system/xbin/daemonsu --auto-daemon &
