@@ -1,5 +1,5 @@
 #Build PLC
-CONFIG_CROSS_COMPILE="/home/placiano/Android/toolchain/bin/arm-eabi-"
+CONFIG_CROSS_COMPILE="/home/placiano/Android/toolchain/arm-eabi-4.9-cortex-a15/bin/arm-eabi-"
 CONFIG_LOCALVERSION="-$KERNEL_VERSION"
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_IOSCHED_SIO=y
