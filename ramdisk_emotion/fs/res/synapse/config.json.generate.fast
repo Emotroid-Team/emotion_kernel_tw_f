@@ -45,22 +45,34 @@ cat << CTAG
 		description:" Only possible when FastCharge Custom_Levels is selected"
 	}},
 	{ SOptionList:{
-		title:"Set AC Custom Charge Level - default is 1800",
+		title:"Set AC Custom Charge Level - default is 2200",
 		default:`cat /sys/kernel/fast_charge//ac_charge_level`,
 		action:"generic /sys/kernel/fast_charge/ac_charge_level",
-		values:[2100, 2000, 1900, 1800, 1700, 1600, 1500, 1400, 1300, 1200, 1100, 1000,]
+		values:[2200, 1900, 1450, 1000, 500,]
 	}},
 	{ SOptionList:{
 		title:"Set USB Custom Charge Level - default is 460",
 		default:`cat /sys/kernel/fast_charge//usb_charge_level`,
 		action:"generic /sys/kernel/fast_charge/usb_charge_level",
-		values:[1000, 900, 800, 700, 600, 500, 460,]
+		values:[1000, 700, 460,]
 	}},
 	{ SOptionList:{
-		title:"Set Wireless Custom Charge Level - default is 650",
-		default:`cat /sys/kernel/fast_charge/wireless_charge_level`,
-		action:"generic /sys/kernel/fast_charge/wireless_charge_level",
-		values:[1200, 1100, 1000, 900, 800, 650,]
+		title:"Use MPT while Fast Charge",
+		default:`cat /sys/kernel/fast_charge/use_mtp_during_fast_charge`,
+		action:"generic /sys/kernel/fast_charge/use_mtp_during_fast_charge",
+		values:{
+			"0":"Disabled",
+			"1":"Enabled",
+			}
+	}},
+	{ SOptionList:{
+		title:"Screen On Current Limit",
+		default:`cat /sys/kernel/fast_charge/screen_on_current_limit`,
+		action:"generic /sys/kernel/fast_charge/screen_on_current_limit",
+		values:{
+			"0":"Disabled",
+			"1":"Enabled",
+			}
 	}},
 	{ SPane:{
 		title:"FAILSAVE - DISABLE AT OWN RISK",
