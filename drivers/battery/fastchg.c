@@ -201,10 +201,18 @@ static ssize_t ac_charge_level_store(struct kobject *kobj,
 	else {
 
 		switch (new_ac_charge_level) {
-			case AC_CHARGE_500:
 			case AC_CHARGE_1000:
-			case AC_CHARGE_1450:
-			case AC_CHARGE_2200:
+			case AC_CHARGE_1100:
+			case AC_CHARGE_1200:
+			case AC_CHARGE_1300:
+			case AC_CHARGE_1400:
+			case AC_CHARGE_1500:
+			case AC_CHARGE_1600:
+			case AC_CHARGE_1700:
+			case AC_CHARGE_1800:
+			case AC_CHARGE_1900:
+			case AC_CHARGE_2000:
+			case AC_CHARGE_2100:
 				ac_charge_level = new_ac_charge_level;
 				return count;
 			default:
@@ -253,7 +261,11 @@ static ssize_t usb_charge_level_store(struct kobject *kobj,
 
 		switch (new_usb_charge_level) {
 			case USB_CHARGE_460:
+			case USB_CHARGE_500:
+			case USB_CHARGE_600:
 			case USB_CHARGE_700:
+			case USB_CHARGE_800:
+			case USB_CHARGE_900:
 			case USB_CHARGE_1000:
 				usb_charge_level = new_usb_charge_level;
 				return count;
@@ -294,7 +306,7 @@ static ssize_t failsafe_store(struct kobject *kobj,
 	switch (new_failsafe) {
 		case FAIL_SAFE_ENABLED:
 			usb_charge_level = USB_CHARGE_460;
-			ac_charge_level = AC_CHARGE_1000;
+			ac_charge_level = AC_CHARGE_2100;
 			failsafe = new_failsafe;
 			return count;
 		case FAIL_SAFE_DISABLED:
@@ -334,7 +346,7 @@ static ssize_t info_show(struct kobject *kobj,
 {
 	return sprintf(
 		buf,
-		"Forced Fast Charge for Samsung Galaxy S4 Qualcomm %s\n\n"
+		"Forced Fast Charge for Samsung Galaxy Note 4 %s\n\n"
 		"Fast charge mode : %s\n"
 		"MTP while charging mode : %s\n"
 		"Screen on Current Limit mode : %s\n"
@@ -404,8 +416,8 @@ int force_fast_charge_init(void)
 	use_mtp_during_fast_charge = USE_MTP_DURING_FAST_CHARGE_ENABLED;
 	/* Use Samsung Screen ON current limit while charging, enabled by default */
 	screen_on_current_limit = SCREEN_ON_CURRENT_LIMIT_ENABLED;
-	/* Default AC charge level to 2200mA/h    */
-	ac_charge_level   = AC_CHARGE_2200;
+	/* Default AC charge level to 2100mA/h    */
+	ac_charge_level   = AC_CHARGE_2100;
 	/* Default USB charge level to 460mA/h    */
 	usb_charge_level  = USB_CHARGE_460;
 	/* Allow only values in list by default   */

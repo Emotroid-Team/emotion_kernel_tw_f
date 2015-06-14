@@ -23,56 +23,75 @@ cat << CTAG
 		{ SDescription:{ 
 			description:""
 		}},
-    	{ SPane:{
-		title:"Fast Charge",
+	{ SPane:{
+		title:"Enable/Disable FastCharge"
+	}},
+	{ SDescription:{
+		description:" * Default is Disabled."
+	}},
+	{ SDescription:{
+		description:" * Enabled_FastCharge will substitute AC to USB."
+	}},
+	{ SDescription:{
+		description:" * Enabled_FastCharge_with_Custom_Levels will use custom mA/h as user set below."
+	}},
+	{ SDescription:{
 		description:""
-        }},
-    	{ SDescription:{
-        	description:"\n\tFast Charge counts with 3 modes.\n\n\tDisabled, Enabled and Enabled with costume levels.\n\n",
-        	background:0
-        }},
-    	{ SPane:{
-		title:"Charging Currents",
-		description:""
-        }},
+	}},
 	{ SOptionList:{
 		default:`echo $(/res/synapse/actions/fast fastcharge)`,
 		action:"fast fastcharge",
 		values:[Disabled, Enabled, Enabled_with_Custom_Levels,]
 	}},
+	{ SDescription:{
+		description:""
+	}},
+        { SCheckBox:{
+                description:" Use MTP during fast charge. Default is Enabled.",
+                label:"Use MTP",
+		default:`cat /sys/kernel/fast_charge/use_mtp_during_fast_charge`,
+                action:"generic /sys/kernel/fast_charge/use_mtp_during_fast_charge"
+	}},
+	{ SDescription:{
+		description:""
+	}},
+        { SCheckBox:{
+                description:" Use Samsung screen ON charging limit whilst charging. Default is Enabled.",
+                label:"Screen ON current limit",
+		default:`cat /sys/kernel/fast_charge/screen_on_current_limit`,
+                action:"generic /sys/kernel/fast_charge/screen_on_current_limit"
+	}},
+	{ SDescription:{
+		description:""
+	}},
 	{ SPane:{
 		title:"Custom_Levels settings",
-		description:" Only possible when FastCharge Custom_Levels is selected"
+		description:" Only possible when FastCharge Custom_Levels is selected."
 	}},
-	{ SOptionList:{
-		title:"Set AC Custom Charge Level - default is 2200",
-		default:`cat /sys/kernel/fast_charge//ac_charge_level`,
+	{ SDescription:{
+		description:""
+	}},
+	{ SSeekBar:{
+		title:"Set AC Custom Charge Level",
+		description:" Default is 2100.\n",
+		unit:" mA/h",
+		default:`cat /sys/kernel/fast_charge/ac_charge_level`,
 		action:"generic /sys/kernel/fast_charge/ac_charge_level",
-		values:[2200, 1900, 1450, 1000, 500,]
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/kernel/fast_charge/ac_levels`]
 	}},
-	{ SOptionList:{
-		title:"Set USB Custom Charge Level - default is 460",
-		default:`cat /sys/kernel/fast_charge//usb_charge_level`,
+	{ SDescription:{
+		description:""
+	}},
+	{ SSeekBar:{
+		title:"Set USB Custom Charge Level",
+		description:" Default is 460.\n",
+		unit:" mA/h",
+		default:`cat /sys/kernel/fast_charge/usb_charge_level`,
 		action:"generic /sys/kernel/fast_charge/usb_charge_level",
-		values:[1000, 700, 460,]
+		values:[`while read values; do busybox printf "%s, \n" $values; done < /sys/kernel/fast_charge/usb_levels`]
 	}},
-	{ SOptionList:{
-		title:"Use MPT while Fast Charge",
-		default:`cat /sys/kernel/fast_charge/use_mtp_during_fast_charge`,
-		action:"generic /sys/kernel/fast_charge/use_mtp_during_fast_charge",
-		values:{
-			"0":"Disabled",
-			"1":"Enabled",
-			}
-	}},
-	{ SOptionList:{
-		title:"Screen On Current Limit",
-		default:`cat /sys/kernel/fast_charge/screen_on_current_limit`,
-		action:"generic /sys/kernel/fast_charge/screen_on_current_limit",
-		values:{
-			"0":"Disabled",
-			"1":"Enabled",
-			}
+	{ SDescription:{
+		description:""
 	}},
 	{ SPane:{
 		title:"FAILSAVE - DISABLE AT OWN RISK",
