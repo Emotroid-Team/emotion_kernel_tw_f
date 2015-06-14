@@ -749,7 +749,7 @@ static void handle_event_change(enum command_response cmd, void *data)
 		}
 		msm_comm_init_dcvs_load(inst);
 		rc = msm_vidc_check_session_supported(inst);
-		if (!rc)
+		if (!rc){
 			msm_vidc_queue_v4l2_event(inst, event);
 		} else if (rc) {
 			msm_vidc_queue_v4l2_event(inst,
