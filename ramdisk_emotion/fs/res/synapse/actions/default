@@ -99,11 +99,29 @@ vwrite)
   ;;
 hotplug)
   P=/sys/module/intelli_plug/parameters/intelli_plug_active
+  Z=/sys/kernel/zen_decision/enabled
   if [ ! -z $2 ]
   then
   if [ $2 == 1 ]
   then
   stop mpdecision
+  echo 0 > $Z
+  else
+  start mpdecision
+  fi
+  echo $2 > $P
+  fi
+  echo `cat $P`
+  ;;
+zen)
+  Z=/sys/module/intelli_plug/parameters/intelli_plug_active
+  P=/sys/kernel/zen_decision/enabled
+  if [ ! -z $2 ]
+  then
+  if [ $2 == 1 ]
+  then
+  stop mpdecision
+  echo 0 > $Z
   else
   start mpdecision
   fi

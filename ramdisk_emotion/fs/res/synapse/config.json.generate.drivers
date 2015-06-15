@@ -164,6 +164,44 @@ cat << CTAG
 		label:"Intelli-Plug version",
 		action:"show intelli"
 	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SPane:{
+		title:"Zen Decision",
+		description:" This adds a simple driver intended to allow the MPDecision service to be disabled.",
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SCheckBox:{
+		label:"Enable Zen Decision",
+		action:"default zen"
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SSeekBar:{
+		title:"Set wake wait time",
+		description:"How long to wait before executing CPU_UP work. Default 1000 ",
+		max:6000,
+		min:0,
+		step:100,
+		default:1000,
+		action:"generic /sys/kernel/zen_decision/wake_wait_time",
+	}},
+	{ SDescription:{
+	description:" "
+	}},
+	{ SSeekBar:{
+		title:"Set Battery level threshold to ignore UP operations",
+		description:"Don't do any CPU_UP work up to this battery charge level. If set at 15, and battery level is 15% or lower then don't attempt to bring CPUs online when screen comes on. Default 15 ",
+		max:100,
+		min:0,
+		step:1,
+		default:15,
+		action:"generic /sys/kernel/zen_decision/bat_threshold_ignore",
+	}},
     ]
 }
 CTAG
