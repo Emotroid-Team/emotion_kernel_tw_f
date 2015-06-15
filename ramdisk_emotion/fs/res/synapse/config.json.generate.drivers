@@ -184,7 +184,7 @@ cat << CTAG
 	{ SSeekBar:{
 		title:"Set wake wait time",
 		description:"How long to wait before executing CPU_UP work. Default 1000 ",
-		max:6000,
+		max:60000,
 		min:0,
 		step:100,
 		default:1000,
