@@ -36,7 +36,6 @@ unsigned int enabled = 0;
  */
 #define WAKE_WAIT_TIME_MAX 60000 // 1 minute maximum
 unsigned int wake_wait_time = 1000;
->>>>>>> 3662838... msm: zen_decision v2.0
 
 /*
  * Battery level threshold to ignore UP operations.
