@@ -52,9 +52,6 @@ static struct workqueue_struct *cpu_boost_wq;
 
 static struct work_struct input_boost_work;
 
-bool cpuboost_enable = true;
-module_param(cpuboost_enable, bool, 0644);
-
 static unsigned int boost_ms;
 module_param(boost_ms, uint, 0644);
 
@@ -96,8 +93,6 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val,
 	unsigned int b_min = s->boost_min;
 	unsigned int ib_min = s->input_boost_min;
 	unsigned int min;
-
-	if (!cpuboost_enable) return NOTIFY_OK;
 
 	switch (val) {
 	case CPUFREQ_ADJUST:
@@ -160,8 +155,6 @@ static int boost_mig_sync_thread(void *data)
 	unsigned long flags;
 	unsigned int req_freq;
 
-	if (!cpuboost_enable) return 0;
-
 	while (1) {
 		wait_event(s->sync_wq, s->pending || kthread_should_stop());
 #ifdef CONFIG_IRLED_GPIO
@@ -186,9 +179,6 @@ static int boost_mig_sync_thread(void *data)
 
 		ret = cpufreq_get_policy(&dest_policy, dest_cpu);
 		if (ret)
-			continue;
-
-		if (s->task_load < migration_load_threshold)
 			continue;
 
 		req_freq = load_based_syncs ?
@@ -246,7 +236,6 @@ static int boost_migration_notify(struct notifier_block *nb,
 		return NOTIFY_OK;
 	}
 #endif
-	if (!cpuboost_enable) return NOTIFY_OK;
 
 	if (load_based_syncs && (mnd->load <= migration_load_threshold))
 		return NOTIFY_OK;
@@ -270,7 +259,7 @@ static int boost_migration_notify(struct notifier_block *nb,
 	spin_lock_irqsave(&s->lock, flags);
 	s->pending = true;
 	s->src_cpu = mnd->src_cpu;
-	s->task_load = mnd->load;
+	s->task_load = load_based_syncs ? mnd->load : 0;
 	spin_unlock_irqrestore(&s->lock, flags);
 	wake_up(&s->sync_wq);
 
@@ -286,8 +275,6 @@ static void do_input_boost(struct work_struct *work)
 	unsigned int i, ret;
 	struct cpu_sync *i_sync_info;
 	struct cpufreq_policy policy;
-
-	if (!cpuboost_enable) return;
 
 	get_online_cpus();
 	for_each_online_cpu(i) {
@@ -314,8 +301,6 @@ static void cpuboost_input_event(struct input_handle *handle,
 {
 	u64 now;
 
-	if (!cpuboost_enable) return;
-
 	if (!input_boost_freq)
 		return;
 
@@ -328,7 +313,7 @@ static void cpuboost_input_event(struct input_handle *handle,
 #endif
 
 	now = ktime_to_us(ktime_get());
-	if (now - last_input_time < (input_boost_ms * USEC_PER_MSEC))
+	if (now - last_input_time < MIN_INPUT_INTERVAL)
 		return;
 
 	if (work_pending(&input_boost_work))
