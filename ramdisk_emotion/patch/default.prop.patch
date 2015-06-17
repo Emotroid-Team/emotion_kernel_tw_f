@@ -1,17 +1,17 @@
-From e4dfda5c484cfdc61d7118e4b3ba53d11df566b9 Mon Sep 17 00:00:00 2001
+From b77b319d5c1c25f5d809f32fbf6f970745168920 Mon Sep 17 00:00:00 2001
 From: placiano <placiano80@gmail.com>
-Date: Sat, 23 May 2015 16:57:09 +0200
+Date: Wed, 17 Jun 2015 18:29:37 +0200
 Subject: [PATCH] patch default.prop
 
 ---
- default.prop | 15 ++++++++++-----
- 1 file changed, 10 insertions(+), 5 deletions(-)
+ SM-N910F/default.prop | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/default.prop b/default.prop
-index defbff1..e838b7a 100644
---- a/default.prop
-+++ b/default.prop
-@@ -2,15 +2,20 @@
+diff --git a/SM-N910F/default.prop b/SM-N910F/default.prop
+index defbff1..0a3471b 100644
+--- a/SM-N910F/default.prop
++++ b/SM-N910F/default.prop
+@@ -2,15 +2,22 @@
  # ADDITIONAL_DEFAULT_PROPERTIES
  #
  persist.cne.feature=0
@@ -32,6 +32,8 @@ index defbff1..e838b7a 100644
  dalvik.vm.dex2oat-Xmx=512m
  dalvik.vm.image-dex2oat-Xms=64m
  dalvik.vm.image-dex2oat-Xmx=64m
++dalvik.vm.image-dex2oat-filter=everything
++dalvik.vm.dex2oat-filter=everything
  ro.dalvik.vm.native.bridge=0
 +wlan.wfd.hdcp=disable
 +androidboot.selinux=0
