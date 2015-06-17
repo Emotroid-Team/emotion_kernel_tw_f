@@ -6,6 +6,7 @@ export PATH
 BBX=/system/xbin/busybox
 
 # Inicio
+mount -o remount,rw -t auto /
 mount -o remount,rw -t auto /system
 mount -t rootfs -o remount,rw rootfs
 
@@ -166,6 +167,20 @@ mount -t rootfs -o remount,ro rootfs
 
 sync
 
+# Google play services wakelock fix
+sleep 40
+su -c "pm enable com.google.android.gms/.update.SystemUpdateActivity"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$ActiveReceiver"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$Receiver"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$SecretCodeReceiver"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateActivity"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdatePanoActivity"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$Receiver"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$SecretCodeReceiver"
+
 #Fin
 mount -t rootfs -o remount,ro rootfs
 mount -o remount,ro -t auto /system
+mount -o remount,ro -t auto /
