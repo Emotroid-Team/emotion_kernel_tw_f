@@ -1,17 +1,17 @@
-From b77b319d5c1c25f5d809f32fbf6f970745168920 Mon Sep 17 00:00:00 2001
+From 727e8a041602272675a149211071d80d2cfb0b6f Mon Sep 17 00:00:00 2001
 From: placiano <placiano80@gmail.com>
-Date: Wed, 17 Jun 2015 18:29:37 +0200
-Subject: [PATCH] patch default.prop
+Date: Thu, 18 Jun 2015 15:49:22 +0200
+Subject: [PATCH] default.prop.patch
 
 ---
- SM-N910F/default.prop | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ SM-N910F/default.prop | 33 ++++++++++++++++++++++++++++-----
+ 1 file changed, 28 insertions(+), 5 deletions(-)
 
 diff --git a/SM-N910F/default.prop b/SM-N910F/default.prop
-index defbff1..0a3471b 100644
+index defbff1..eb64764 100644
 --- a/SM-N910F/default.prop
 +++ b/SM-N910F/default.prop
-@@ -2,15 +2,22 @@
+@@ -2,15 +2,38 @@
  # ADDITIONAL_DEFAULT_PROPERTIES
  #
  persist.cne.feature=0
@@ -39,6 +39,22 @@ index defbff1..0a3471b 100644
 +androidboot.selinux=0
 +ro.config.knox=0
 +ro.config.tima=0
++ro.config.dha_cached_max=15
++ro.config.dha_empty_max=42
++ro.config.dha_empty_init=42
++ro.config.dha_th_rate=2.3
++ro.config.dha_lmk_scale=0.545
++ro.config.sdha_apps_bg_max=70
++ro.config.oomminfree_high=7628,9768,11909,14515,16655,20469
++windowsmgr.max_events_per_sec=90
++ro.min_pointer_dur=8
++ro.max.fling_velocity=12000
++ro.min.fling_velocity=8000
++video.accelerate.hw=1
++debug.performance.tuning=1
++persist.service.lgospd.enable=0
++persist.service.pcsync.enable=0
++touch.pressure.scale=0.003
 \ No newline at end of file
 --
 libgit2 0.22.2
