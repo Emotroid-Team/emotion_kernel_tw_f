@@ -438,10 +438,10 @@ static unsigned int disable_hotplug_asleep;			// ZZ: for setting hotplug on/off 
 #endif /* ENABLE_HOTPLUGGING */
 #endif
 
-/*#ifdef USE_LCD_NOTIFIER
+#if defined(USE_LCD_NOTIFIER) && !defined(CONFIG_POWERSUSPEND)
 static struct notifier_block zzmoove_lcd_notif;
 #endif
-*/
+
 #ifdef ENABLE_INPUTBOOSTER
 // ff: Input Booster variables
 static unsigned int boost_on_tsp = DEF_INPUTBOOST_ON_TSP;	// ff: hardcoded since it'd be silly not to use it
@@ -7387,7 +7387,7 @@ static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
 // raise sampling rate to SR*multiplier and adjust sampling rate/thresholds/hotplug/scaling/freq limit/freq step on blank screen
 #if defined(CONFIG_HAS_EARLYSUSPEND) && !defined(USE_LCD_NOTIFIER)
 static void __cpuinit powersave_early_suspend(struct early_suspend *handler)
-#elif defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER)
+#elif defined(CONFIG_POWERSUSPEND) && !defined(USE_LCD_NOTIFIER) || defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER)
 static void __cpuinit powersave_suspend(struct power_suspend *handler)
 #elif defined(USE_LCD_NOTIFIER)
 void zzmoove_suspend(void)
@@ -7560,7 +7560,7 @@ void zzmoove_suspend(void)
 
 #if defined(CONFIG_HAS_EARLYSUSPEND) && !defined(USE_LCD_NOTIFIER)
 static void __cpuinit powersave_late_resume(struct early_suspend *handler)
-#elif defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER)
+#elif defined(CONFIG_POWERSUSPEND) && !defined(USE_LCD_NOTIFIER) || defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER)
 static void __cpuinit powersave_resume(struct power_suspend *handler)
 #elif defined(USE_LCD_NOTIFIER)
 void zzmoove_resume(void)
@@ -7644,7 +7644,7 @@ static struct early_suspend __refdata _powersave_early_suspend = {
   .resume = powersave_late_resume,
   .level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
 };
-#elif defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER) && !defined (DISABLE_POWER_MANAGEMENT)
+#elif defined(CONFIG_POWERSUSPEND) && defined(USE_LCD_NOTIFIER) && !defined (DISABLE_POWER_MANAGEMENT) || defined(CONFIG_POWERSUSPEND) && !defined(USE_LCD_NOTIFIER) && !defined (DISABLE_POWER_MANAGEMENT)
 static struct power_suspend __refdata powersave_powersuspend = {
   .suspend = powersave_suspend,
   .resume = powersave_resume,
@@ -7901,7 +7901,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	return 0;
 }
 
-/*#ifdef USE_LCD_NOTIFIER
+#if (defined(USE_LCD_NOTIFIER) && !defined(CONFIG_POWERSUSPEND))
 // AP: callback handler for lcd notifier
 static int zzmoove_lcd_notifier_callback(struct notifier_block *this,
 								unsigned long event, void *data)
@@ -7931,7 +7931,7 @@ static int zzmoove_lcd_notifier_callback(struct notifier_block *this,
 	}
 return 0;
 }
-#endif*/
+#endif
 
 #ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_ZZMOOVE
 static
@@ -7977,14 +7977,14 @@ static int __init cpufreq_gov_dbs_init(void)						// ZZ: idle exit time handling
     INIT_WORK(&hotplug_online_work, hotplug_online_work_fn);				// ZZ: init hotplug online work
 #endif /* ENABLE_HOTPLUGGING */
 
-/*#ifdef USE_LCD_NOTIFIER
+#if (defined(USE_LCD_NOTIFIER) && !defined(CONFIG_POWERSUSPEND))
 	// AP: register callback handler for lcd notifier
 	zzmoove_lcd_notif.notifier_call = zzmoove_lcd_notifier_callback;
 	if (lcd_register_client(&zzmoove_lcd_notif) != 0) {
 		pr_err("%s: Failed to register lcd callback\n", __func__);
 		return -EFAULT;
 	}
-#endif*/
+#endif
 	return cpufreq_register_governor(&cpufreq_gov_zzmoove);
 }
 
@@ -7996,9 +7996,9 @@ static void __exit cpufreq_gov_dbs_exit(void)
 	destroy_workqueue(dbs_aux_wq);
 #endif
 
-//#ifdef USE_LCD_NOTIFIER
-//	lcd_unregister_client(&z/*zmoove_lcd_notif);
-//#endif
+#if (defined(USE_LCD_NOTIFIER) && !defined(CONFIG_POWERSUSPEND))
+	lcd_unregister_client(&zzmoove_lcd_notif);
+#endif
 }
 
 MODULE_AUTHOR("Zane Zaminsky <cyxman@yahoo.com>");
