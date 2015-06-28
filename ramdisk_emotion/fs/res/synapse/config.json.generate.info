@@ -29,7 +29,7 @@ cat << CTAG
 	}},
 	{ SPane:{
 		title:"Special Thanks to",
-		description:"Andip71, AndreiLux, apb_axel, Civato, Christopher83, DerTeufel, Faux123, Ffolkes, Flar2, Franciscofranco, Franlov, Friedrich420, Gokhanmoral, Infernum, Javilonas, LoungeKatt (TwistedUmbrella), Vanito, Yank555.lu, ZaneZam - and all users that support the thread and the kernel"
+		description:"\n\tAndip71, AndreiLux, apb_axel, Arter97, Civato, Christopher83, Codeaurora, DerTeufel, Faux123, Ffolkes, Flar2, Franciscofranco, Franlov, Friedrich420, Gokhanmoral, Imoseyon, Infernum, Javilonas, ktoonsez, Linaro, LoungeKatt (TwistedUmbrella), myfluxi, neobuddy89, savoca, _Sofos_, UpInTheAir, Vanito, Yank555.lu, ZaneZam.\n\n\tThanks to @hsbadr for contribute on the SM-N910V source code.\n\n\tThanks to @myaslioglu @Jdidtht @aloom @moe67er to test the Note edge beta releases!.\n\n\tAlso thanks to @anthony92170 @ronnie498 @blacklabel2020 @ravenseb for testing the T-mobile kernel!.\n\n\tAnd all users that support the thread and the kernel\n"
 	}},
 	{ SPane:{
 		title:"Source",
