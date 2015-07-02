@@ -66,6 +66,46 @@ cat << CTAG
 		default:`cat /sys/module/simple_gpu_algorithm/parameters/simple_ramp_threshold`,
 		action:"generic /sys/module/simple_gpu_algorithm/parameters/simple_ramp_threshold",
 	}},
+		{ SPane:{
+		title:"Adreno idler - Idling algorithm"
+	}},
+	{ SOptionList:{
+		label:"Enable adreno_idler",
+		description:" An efficient workaround for msm-adreno-tz's overheads. *(Only works with msm-adreno-tz as governor). Default enabled",
+		default:`cat /sys/module/adreno_idler/parameters/adreno_idler_active`,
+		action:"generic /sys/module/adreno_idler/parameters/adreno_idler_active",
+        values:{
+			"N":"Disabled",
+			"Y":"Enabled",
+			}        
+    }},
+    { SSeekBar:{
+		title:"Idle work load",
+		description:" Adreno idler will more actively try to ramp down the frequency if this is set to a higher value. Default is 5000.",
+		min:0,
+		max:10000,
+		step:100,
+		default:`cat /sys/module/adreno_idler/parameters/adreno_idler_idleworkload`,
+		action:"generic /sys/module/adreno_idler/parameters/adreno_idler_idleworkload",
+	}},
+	{ SSeekBar:{
+		title:"Idle wait",
+		description:" Number of events to wait before ramping down the frequency. The idlewait'th events before current one must be all idle before. Adreno idler ramps down the frequency. This implementation is to prevent micro-lags on scrolling or playing games. Adreno idler will more actively try to ramp down the frequency this is set to a lower value. Default is 20.",
+		min:0,
+		max:100,
+		step:1,
+		default:`cat /sys/module/adreno_idler/parameters/adreno_idler_idlewait`,
+		action:"generic /sys/module/adreno_idler/parameters/adreno_idler_idlewait",
+	}},
+	{ SSeekBar:{
+		title:"Down Differential",
+		description:" This variable determines how long the governor will remain at the given frequency before scaling down. Default is 20.",
+		min:0,
+		max:100,
+		step:1,
+		default:`cat /sys/module/adreno_idler/parameters/adreno_idler_downdifferential`,
+		action:"generic /sys/module/adreno_idler/parameters/adreno_idler_downdifferential",
+	}},
     ]
 }
 CTAG
