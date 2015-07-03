@@ -6,7 +6,7 @@ cat << CTAG
     elements:[
 	{ SPane:{
 		title:"Sweep2Wake Control",
-		description:"\n\tSettings pertaining to Sweep2Wake.\n\n\tLock your device sliding your finger from right to left until half the screen .\n"
+		description:"\n\tSettings pertaining to Sweep2Wake.\n\n\tLock your device sliding your finger from right to left or from left to right until half the screen.\n"
         }},
 	{ SOptionList:{
 		default:`echo $(/res/synapse/actions/touch wake)`,
