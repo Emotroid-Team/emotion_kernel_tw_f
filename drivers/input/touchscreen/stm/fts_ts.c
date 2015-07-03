@@ -2806,7 +2806,7 @@ static void fts_secure_touch_stop(struct fts_ts_info *info, int blocking)
 
 static int fts_stop_device(struct fts_ts_info *info)
 {
-	if (s2w_switch > 0) {
+	if ((s2w_switch > 0)  && (s2w_s2sonly == 0)) {
 		info->lowpower_mode = true;
 	} else {
 		info->lowpower_mode = false;

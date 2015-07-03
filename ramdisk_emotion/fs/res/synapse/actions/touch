@@ -18,4 +18,19 @@ wake)
     echo s2s
   fi
   ;;
+sleep)
+  P=/sys/android_touch/s2w_s2sonly
+  if [ ! -z $2 ]; then
+  if [ $2 == Off ]; then
+    echo 0 > $P
+  elif [ $2 == s2s_only ]; then
+    echo 1 > $P
+  fi; fi
+  copy=`cat $P`
+  if [ $copy == 0 ]; then
+    echo Off
+  elif [ $copy == 1 ]; then
+    echo s2s_only
+  fi
+  ;;
 esac
