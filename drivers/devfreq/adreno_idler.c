@@ -31,6 +31,8 @@
 #include <linux/devfreq.h>
 #include <linux/msm_adreno_devfreq.h>
 
+#include "adreno_idler.h"
+
 #define ADRENO_IDLER_MAJOR_VERSION 1
 #define ADRENO_IDLER_MINOR_VERSION 1
 
@@ -55,7 +57,7 @@ static unsigned int downdifferential = 20;
 module_param_named(adreno_idler_downdifferential, downdifferential, uint, 0664);
 
 /* Master switch to activate the whole routine */
-static bool adreno_idler_active = true;
+bool adreno_idler_active;
 module_param_named(adreno_idler_active, adreno_idler_active, bool, 0664);
 
 static unsigned int idlecount = 0;
