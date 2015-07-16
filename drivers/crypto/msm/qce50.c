@@ -5116,18 +5116,19 @@ static int __qce_get_device_tree_data(struct platform_device *pdev,
 				&pce_dev->ce_sps.pipe_pair_index)) {
 		pr_err("Fail to get bam pipe pair information.\n");
 		return -EINVAL;
-	} else {
-		pr_warn("bam_pipe_pair=0x%x", pce_dev->ce_sps.pipe_pair_index);
 	}
 	if (of_property_read_u32((&pdev->dev)->of_node,
 				"qcom,ce-device",
 				&pce_dev->ce_sps.ce_device)) {
 		pr_err("Fail to get CE device information.\n");
 		return -EINVAL;
-	} else {
-		pr_warn("ce-device =0x%x", pce_dev->ce_sps.ce_device);
 	}
-
+	if (of_property_read_u32((&pdev->dev)->of_node,
+				"qcom,ce-hw-instance",
+				&pce_dev->ce_sps.ce_hw_instance)) {
+		pr_err("Fail to get CE hw instance information.\n");
+		return -EINVAL;
+	}
 	pce_dev->ce_sps.dest_pipe_index	= 2 * pce_dev->ce_sps.pipe_pair_index;
 	pce_dev->ce_sps.src_pipe_index	= pce_dev->ce_sps.dest_pipe_index + 1;
 
@@ -5145,8 +5146,6 @@ static int __qce_get_device_tree_data(struct platform_device *pdev,
 		pr_err("CRYPTO HW mem unavailable.\n");
 		return -ENODEV;
 	}
-	pr_warn("ce_phy_reg_base=0x%x  ", pce_dev->phy_iobase);
-	pr_warn("ce_virt_reg_base=0x%x\n", (uint32_t)pce_dev->iobase);
 
 	resource = platform_get_resource_byname(pdev, IORESOURCE_MEM,
 							"crypto-bam-base");
@@ -5158,12 +5157,10 @@ static int __qce_get_device_tree_data(struct platform_device *pdev,
 		rc = -ENODEV;
 		goto err_getting_bam_info;
 	}
-	pr_warn("ce_bam_phy_reg_base=0x%x  ", pce_dev->bam_mem);
 
 	resource  = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (resource) {
 		pce_dev->ce_sps.bam_irq = resource->start;
-		pr_warn("CRYPTO BAM IRQ = %d.\n", pce_dev->ce_sps.bam_irq);
 	} else {
 		pr_err("CRYPTO BAM IRQ unavailable.\n");
 		goto err_dev;
@@ -5183,7 +5180,6 @@ err_getting_bam_info:
 static int __qce_init_clk(struct qce_device *pce_dev)
 {
 	int rc = 0;
-	struct clk *ce_core_clk;
 	struct clk *ce_clk;
 	struct clk *ce_core_src_clk;
 	struct clk *ce_bus_clk;
@@ -5202,20 +5198,9 @@ static int __qce_init_clk(struct qce_device *pce_dev)
 			goto err_clk;
 		}
 	} else {
-		pr_warn("Unable to get CE core src clk, set to NULL\n");
+		pr_err("Unable to get CE core src clk, set to NULL\n");
 		pce_dev->ce_core_src_clk = NULL;
 	}
-
-	/* Get CE core clk */
-	ce_core_clk = clk_get(pce_dev->pdev, "core_clk");
-	if (IS_ERR(ce_core_clk)) {
-		rc = PTR_ERR(ce_core_clk);
-		pr_err("Unable to get CE core clk\n");
-		if (pce_dev->ce_core_src_clk != NULL)
-			clk_put(pce_dev->ce_core_src_clk);
-		goto err_clk;
-	}
-	pce_dev->ce_core_clk = ce_core_clk;
 
 	/* Get CE Interface clk */
 	ce_clk = clk_get(pce_dev->pdev, "iface_clk");
@@ -5274,8 +5259,8 @@ int qce_enable_clk(void *handle)
 	int rc = 0;
 
 	/* Enable CE core clk */
-	if (pce_dev->ce_core_clk != NULL) {
-		rc = clk_prepare_enable(pce_dev->ce_core_clk);
+	if (pce_dev->ce_core_src_clk != NULL) {
+		rc = clk_prepare_enable(pce_dev->ce_core_src_clk);
 		if (rc) {
 			pr_err("Unable to enable/prepare CE core clk\n");
 			return rc;
@@ -5312,8 +5297,8 @@ int qce_disable_clk(void *handle)
 
 	if (pce_dev->ce_clk != NULL)
 		clk_disable_unprepare(pce_dev->ce_clk);
-	if (pce_dev->ce_core_clk != NULL)
-		clk_disable_unprepare(pce_dev->ce_core_clk);
+	if (pce_dev->ce_core_src_clk != NULL)
+		clk_disable_unprepare(pce_dev->ce_core_src_clk);
 	if (pce_dev->ce_bus_clk != NULL)
 		clk_disable_unprepare(pce_dev->ce_bus_clk);
 
@@ -5466,6 +5451,7 @@ int qce_hw_support(void *handle, struct ce_hw_support *ce_support)
 	ce_support->use_sw_aes_ccm_algo =
 				pce_dev->use_sw_aes_ccm_algo;
 	ce_support->ce_device = pce_dev->ce_sps.ce_device;
+	ce_support->ce_hw_instance = pce_dev->ce_sps.ce_hw_instance;
 	return 0;
 }
 EXPORT_SYMBOL(qce_hw_support);
