@@ -146,7 +146,7 @@ static inline int netlink_dump_start(struct sock *ssk, struct sk_buff *skb,
 }
 
 bool __netlink_ns_capable(const struct netlink_skb_parms *nsp,
-			  struct user_namespace *ns, int cap);
+			struct user_namespace *ns, int cap);
 bool netlink_ns_capable(const struct sk_buff *skb,
 			struct user_namespace *ns, int cap);
 bool netlink_capable(const struct sk_buff *skb, int cap);

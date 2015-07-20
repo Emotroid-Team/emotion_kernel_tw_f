@@ -2251,10 +2251,9 @@ extern int sock_get_timestamp(struct sock *, struct timeval __user *);
 extern int sock_get_timestampns(struct sock *, struct timespec __user *);
 
 bool sk_ns_capable(const struct sock *sk,
-		   struct user_namespace *user_ns, int cap);
+		struct user_namespace *user_ns, int cap);
 bool sk_capable(const struct sock *sk, int cap);
 bool sk_net_capable(const struct sock *sk, int cap);
-
 /*
  *	Enable debug/info messages
  */

@@ -162,7 +162,7 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq,
 #define JIG_LIMIT_TIME	300
 #else
 #define JIG_LIMIT_CLK	1574400 * 1000
-#define JIG_LIMIT_TIME	100
+#define JIG_LIMIT_TIME	300
 #endif
 	if (jig_boot_clk_limit == 1) { //limit 1.5Ghz to block whitescreen during 50 secs on JIG
 		unsigned long long t = sched_clock();
