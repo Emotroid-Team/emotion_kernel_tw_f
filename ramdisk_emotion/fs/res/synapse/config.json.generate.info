@@ -6,7 +6,7 @@ cat << CTAG
     elements:[
 	{ SPane:{
 		title:"Source",
-		description:"Based on Samsung N910FXXU1BOE5 Lollipop."
+		description:"Based on Samsung N910FXXU1POF2 Lollipop."
 	}},
 	{ SPane:{
 		title:"Special Features",
