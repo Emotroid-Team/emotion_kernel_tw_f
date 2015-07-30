@@ -129,4 +129,15 @@ LiveUnUsed)
 battinfo)
 	echo Technology: $(cat /sys/class/power_supply/battery/technology)@nHealth: $(cat /sys/class/power_supply/battery/health)@nStatus: $(cat /sys/class/power_supply/battery/status)@nCharge Level: $(cat /sys/class/power_supply/battery/capacity)%
 	;;
+  UKSMStats)
+  UKSM="$(expr `cat /sys/kernel/mm/uksm/run`)"
+  if [ UKSM -eq "1" ]; then
+    RUNS=`echo "Number of full scans: $((\`cat /sys/kernel/mm/uksm/full_scans\`))"`
+    SAVEDMEM=`echo "Saved memory: $((\`cat /sys/kernel/mm/uksm/pages_sharing\`*4096/1024/1024)) MB"`
+    SHARDMEM=`echo "Shared memory: $((\`cat /sys/kernel/mm/uksm/pages_shared\`*4096/1024/1024)) MB"`
+    echo $RUNS@n$SAVEDMEM@n$SHARDMEM
+  else
+    echo UKSM is Disabled
+  fi
+  ;;
 esac
