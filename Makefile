@@ -195,17 +195,7 @@ else
 _all: modules
 endif
 
-ifeq ($(KBUILD_SRC),)
-        # building in the source tree
-        srctree := .
-else
-        ifeq ($(KBUILD_SRC)/,$(dir $(CURDIR)))
-                # building in a subdirectory of the source tree
-                srctree := ..
-        else
-                srctree := $(KBUILD_SRC)
-        endif
-endif
+srctree		:= $(if $(KBUILD_SRC),$(KBUILD_SRC),.)
 objtree		:= .
 src		:= $(srctree)
 obj		:= $(objtree)
