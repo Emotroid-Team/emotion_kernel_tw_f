@@ -72,6 +72,123 @@ cat << CTAG
 		label:"Version information",
 		action:"show hard"
 	}},
+	{ STitleBar:{
+		title:"CPU Boost",
+	}},
+	{ SDescription:{
+		description:"When certain important tasks migrate from a fast CPU to a slow CPU, CPU Boost Driver boosts the frequency of the slow CPU to at least as high as the fast CPU for a short duration. You can modify behavior of CPU Boost Driver below. CPU Boost helps alleviating poor user experience by elevating frequencies when required."
+	}},
+	{ SSeekBar:{
+		title:"Boost Duration",
+		description:"Sets boost period for which CPU is boosted when task migrates to slower CPU.",
+		min:0, max:120,
+		default:`cat /sys/module/cpu_boost/parameters/boost_ms`,
+		unit:" ms",
+		action:"generic /sys/module/cpu_boost/parameters/boost_ms",
+	}},
+	{ SSeekBar:{
+		title:"Input Boost Duration",
+		description:"Sets period for which idle CPU is boosted whenever there are incoming input/hotplug/wakeup_boost events. Keep this higher enough to get smoother experience on your rocking device.",
+		min:0, max:1000, step: 10,
+		default:`cat /sys/module/cpu_boost/parameters/input_boost_ms`,
+		unit:" ms",
+		action:"generic /sys/module/cpu_boost/parameters/input_boost_ms",
+	}},
+	{ SSeekBar:{
+       		title:"CPU0 Input Boost Frequency",
+		description:"Set the input boost frequency for CPU0.",
+		default:1497600,
+		action:"cpuboostibf 0",
+		values:{
+			0:"Disabled",
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL}MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+	}},
+	{ SSeekBar:{
+       		title:"CPU1 Input Boost Frequency",
+		description:"Set the input boost frequency for CPU1.",
+		default:1497600,
+		action:"cpuboostibf 1",
+		values:{
+			0:"Disabled",
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL}MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+	}},
+	{ SSeekBar:{
+       		title:"CPU2 Input Boost Frequency",
+		description:"Set the input boost frequency for CPU2.",
+		default:1497600,
+		action:"cpuboostibf 2",
+		values:{
+			0:"Disabled",
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL}MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+	}},
+	{ SSeekBar:{
+       		title:"CPU3 Input Boost Frequency",
+		description:"Set the input boost frequency for CPU3.",
+		default:1497600,
+		action:"cpuboostibf 3",
+		values:{
+			0:"Disabled",
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL}MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+	}},
+	{ SSeekBar:{
+       		title:"Sync Threshold",
+		description:"During CPU Boost, frequency of slower CPU is matched with that of faster CPU, we can set limit to maximum frequency allowed for frequency synchronization. Should be greater or equal to Input Event Boost Frequency.",
+		default:`cat /sys/module/cpu_boost/parameters/sync_threshold`,
+		action:"generic /sys/module/cpu_boost/parameters/sync_threshold",
+		values:{
+`
+			while read FREQ TIME; do
+				LABEL=$(expr $FREQ / 1000)
+				echo "$FREQ:\"${LABEL}MHz\", "
+			done < /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+`
+		}
+	}},
+	{ SCheckBox:{
+		label:"Hotplug Boost",
+		description:"Hotplug Boost is similar to input boost but it occurs when CPUs go online.",
+		default:1,
+		action:"boolean /sys/module/cpu_boost/parameters/hotplug_boost",
+	}},
+	{ SCheckBox:{
+		label:"Wakeup Boost",
+		description:"Wakeup Boost is similar to input boost but it occurs when screen is turned on.",
+		default:0,
+		action:"boolean /sys/module/cpu_boost/parameters/wakeup_boost",
+	}},
+	{ SPane:{
+		title:"Power-efficient Workqueues",
+	}},
+	{ SCheckBox:{
+		label:"Enable",
+		description:"This will help to reduce power consumption at the cost of slight performance overhead. PE workqueues are used for unbound scheduled work to save load on sibling CPU cores and queuing work on CPU0.",
+		default:1,
+		action:"boolean /sys/module/workqueue/parameters/power_efficient",
+	}},
 	]
 }
 CTAG
