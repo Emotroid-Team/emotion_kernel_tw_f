@@ -157,7 +157,7 @@ cat << CTAG
 	{ SSeekBar:{
        		title:"Sync Threshold",
 		description:"During CPU Boost, frequency of slower CPU is matched with that of faster CPU, we can set limit to maximum frequency allowed for frequency synchronization. Should be greater or equal to Input Event Boost Frequency.",
-		default:`cat /sys/module/cpu_boost/parameters/sync_threshold`,
+		default:1497600,
 		action:"generic /sys/module/cpu_boost/parameters/sync_threshold",
 		values:{
 `
@@ -170,15 +170,15 @@ cat << CTAG
 	}},
 	{ SCheckBox:{
 		label:"Hotplug Boost",
-		description:"Hotplug Boost is similar to input boost but it occurs when CPUs go online.",
+		description:"Hotplug Boost is similar to input boost but it occurs when CPUs go online. If Hotplug Boost is active, Wakeup Boost will be disabled on the next restart of Synapse",
 		default:1,
-		action:"boolean /sys/module/cpu_boost/parameters/hotplug_boost",
+		action:"boost hotplug",
 	}},
 	{ SCheckBox:{
 		label:"Wakeup Boost",
-		description:"Wakeup Boost is similar to input boost but it occurs when screen is turned on.",
+		description:"Wakeup Boost is similar to input boost but it occurs when screen is turned on. If Wakeup Boost is active Hotplug Boost will be disabled on the next restart of Synapse",
 		default:0,
-		action:"boolean /sys/module/cpu_boost/parameters/wakeup_boost",
+		action:"boost wakeup",
 	}},
 	{ SPane:{
 		title:"Power-efficient Workqueues",

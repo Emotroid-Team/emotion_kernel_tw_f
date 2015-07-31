@@ -1,0 +1,46 @@
+BB=/sbin/busybox;
+
+case $1 in
+hotplug)
+	H=/sys/module/cpu_boost/parameters/hotplug_boost
+	P=/sys/module/cpu_boost/parameters/wakeup_boost
+		if [[ ! -z $2 ]]; then
+			VALUE=$2;
+			
+			if [ "$VALUE" -eq 1 ]; then
+				$BB echo "Y" > $H 2> /dev/null;
+				$BB echo "N" > $P 2> /dev/null;
+			else
+				$BB echo "N" > $H 2> /dev/null;
+			fi;
+		fi;
+		VALUE=`$BB cat $H`;
+
+		if [ $VALUE = "Y" ]; then
+			$BB echo "1";
+		else
+			$BB echo "0";
+		fi;
+	;;
+wakeup)
+	W=/sys/module/cpu_boost/parameters/wakeup_boost
+	P=/sys/module/cpu_boost/parameters/hotplug_boost
+		if [[ ! -z $2 ]]; then
+			VALUE=$2;
+			
+			if [ "$VALUE" -eq 1 ]; then
+				$BB echo "Y" > $W 2> /dev/null;
+				$BB echo "N" > $P 2> /dev/null;
+			else
+				$BB echo "N" > $W 2> /dev/null;
+			fi;
+		fi;
+		VALUE=`$BB cat $W`;
+
+		if [ $VALUE = "Y" ]; then
+			$BB echo "1";
+		else
+			$BB echo "0";
+		fi;
+	;;
+esac
