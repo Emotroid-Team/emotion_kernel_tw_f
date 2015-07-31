@@ -18,11 +18,7 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 #include <linux/kobject.h>
-#ifdef CONFIG_STATE_NOTIFIER
-#include <linux/state_notifier.h>
-#else
 #include <linux/fb.h>
-#endif
 #include <linux/cpufreq.h>
 
 #define INTELLI_PLUG			"intelli_plug"
@@ -371,24 +367,6 @@ static void __intelli_plug_resume(void)
 	queue_work_on(0, susp_wq, &resume_work);
 }
 
-#ifdef CONFIG_STATE_NOTIFIER
-static int state_notifier_callback(struct notifier_block *this,
-				unsigned long event, void *data)
-{
-	switch (event) {
-		case STATE_NOTIFIER_ACTIVE:
-			__intelli_plug_resume();
-			break;
-		case STATE_NOTIFIER_SUSPEND:
-			__intelli_plug_suspend();
-			break;
-		default:
-			break;
-	}
-
-	return NOTIFY_OK;
-}
-#else
 static int fb_notifier_callback(struct notifier_block *self,
 				unsigned long event, void *data)
 {
@@ -414,7 +392,6 @@ static int fb_notifier_callback(struct notifier_block *self,
 
 	return 0;
 }
-#endif
 
 static void intelli_plug_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
@@ -528,21 +505,12 @@ static int __ref intelli_plug_start(void)
 		goto err_out;
 	}
 
-#ifdef CONFIG_STATE_NOTIFIER
-	notif.notifier_call = state_notifier_callback;
-	if (state_register_client(&notif)) {
-		pr_err("%s: Failed to register State notifier callback\n",
-			INTELLI_PLUG);
-		goto err_dev;
-	}
-#else
 	notif.notifier_call = fb_notifier_callback;
 	if (fb_register_client(&notif)) {
 		pr_err("%s: Failed to register FB notifier callback\n",
 			INTELLI_PLUG);
 		goto err_dev;
 	}
-#endif
 
 	ret = input_register_handler(&intelli_plug_input_handler);
 	if (ret) {
@@ -598,11 +566,7 @@ static void intelli_plug_stop(void)
 	cancel_work_sync(&up_down_work);
 	cancel_delayed_work_sync(&intelli_plug_work);
 	mutex_destroy(&intelli_plug_mutex);
-#ifdef CONFIG_STATE_NOTIFIER
-	state_unregister_client(&notif);
-#else
 	fb_unregister_client(&notif);
-#endif
 	notif.notifier_call = NULL;
 
 	input_unregister_handler(&intelli_plug_input_handler);
