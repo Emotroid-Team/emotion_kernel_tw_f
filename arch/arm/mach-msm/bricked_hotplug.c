@@ -24,6 +24,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fb.h>
+#include <linux/notifier.h>
 
 #define DEBUG 0
 
@@ -367,15 +368,10 @@ static int bricked_hotplug_start(void)
 		pr_err("%s: Failed to allocate suspend workqueue\n",
 		       MPDEC_TAG);
 		ret = -ENOMEM;
-		goto err_dev;
+		goto err_out;
 	}
 
 	notif.notifier_call = fb_notifier_callback;
-	if (fb_register_client(&notif)) {
-		pr_err("%s: Failed to register FB notifier callback\n",
-			MPDEC_TAG);
-		goto err_susp;
-	}
 
 	mutex_init(&hotplug.bricked_cpu_mutex);
 	mutex_init(&hotplug.bricked_hotplug_mutex);
@@ -394,10 +390,6 @@ static int bricked_hotplug_start(void)
 					msecs_to_jiffies(hotplug.startdelay));
 
 	return ret;
-err_susp:
-	destroy_workqueue(susp_wq);
-err_dev:
-	destroy_workqueue(hotplug_wq);
 err_out:
 	hotplug.bricked_enabled = 0;
 	return ret;
@@ -419,7 +411,6 @@ static void bricked_hotplug_stop(void)
 	cancel_delayed_work_sync(&hotplug_work);
 	mutex_destroy(&hotplug.bricked_hotplug_mutex);
 	mutex_destroy(&hotplug.bricked_cpu_mutex);
-	fb_unregister_client(&notif);
 	notif.notifier_call = NULL;
 	destroy_workqueue(susp_wq);
 	destroy_workqueue(hotplug_wq);
