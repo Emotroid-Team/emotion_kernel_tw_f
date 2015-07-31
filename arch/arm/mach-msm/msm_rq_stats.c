@@ -256,7 +256,7 @@ static ssize_t show_hotplug_enable(struct kobject *kobj,
 static struct kobj_attribute hotplug_disabled_attr = __ATTR_RO(hotplug_disable);
 
 static struct kobj_attribute hotplug_enabled_attr =
-	__ATTR(hotplug_enable, S_IWUSR | S_IRUSR, show_hotplug_enable,
+	__ATTR(hotplug_enable, S_IRUGO | S_IWUSR | S_IWGRP, show_hotplug_enable,
 	       store_hotplug_enable);
 
 #ifdef CONFIG_BRICKED_HOTPLUG
