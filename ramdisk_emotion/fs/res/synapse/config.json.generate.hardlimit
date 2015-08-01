@@ -78,6 +78,16 @@ cat << CTAG
 	{ SDescription:{
 		description:"When certain important tasks migrate from a fast CPU to a slow CPU, CPU Boost Driver boosts the frequency of the slow CPU to at least as high as the fast CPU for a short duration. You can modify behavior of CPU Boost Driver below. CPU Boost helps alleviating poor user experience by elevating frequencies when required."
 	}},
+	{ SOptionList:{
+       		title:"Enable or disable CPU Boost.",
+			description:"Default On",
+			default:`cat /sys/module/cpu_boost/parameters/cpuboost_enable`,
+			action:"generic /sys/module/cpu_boost/parameters/cpuboost_enable",
+			values:{
+				"N":"Disabled",
+				"Y":"Enabled",
+			}
+	}},
 	{ SSeekBar:{
 		title:"Boost Duration",
 		description:"Sets boost period for which CPU is boosted when task migrates to slower CPU.",
@@ -188,6 +198,43 @@ cat << CTAG
 		description:"This will help to reduce power consumption at the cost of slight performance overhead. PE workqueues are used for unbound scheduled work to save load on sibling CPU cores and queuing work on CPU0.",
 		default:1,
 		action:"boolean /sys/module/workqueue/parameters/power_efficient",
+	}},
+	{ SPane:{
+		title:"PowerSuspend",
+		description:" PowerSuspend driver is a replacement for the early_suspend/late_resume driver. Hybrid uses autosleep & display panel hook. Default is Hybrid."
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SOptionList:{
+		default:`cat /sys/kernel/power_suspend/power_suspend_mode`,
+		action:"generic /sys/kernel/power_suspend/power_suspend_mode",
+		values:{
+				"1":"Userspace_trigger",
+				"2":"DisplayPanel_hook",
+			}
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SSeekBar:{
+		title:"PowerSuspend State",
+		description:" Kernel power management driver when screen is off. Better battery savings if enabled. Note: You can only change this setting if PowerSuspend Mode is set to Userspace_trigger.",
+		min:0,
+		max:1,
+		step:1,
+		default:`cat /sys/kernel/power_suspend/power_suspend_state`,
+		action:"suspend_state /sys/kernel/power_suspend/power_suspend_state"
+	}},
+	{ SDescription:{
+		description:" "
+	}},
+	{ SButton:{
+		label:"PowerSuspend version",
+		action:"show susp"	
+	}},
+	{ SDescription:{
+		description:" "
 	}},
 	]
 }
