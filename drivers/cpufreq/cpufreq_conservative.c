@@ -171,9 +171,13 @@ static ssize_t store_sampling_rate(struct dbs_data *dbs_data, const char *buf,
 {
 	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
 	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
+	int ret = 0;
+	int mpd = strcmp(current->comm, "mpdecision");
+ 
+	if (mpd == 0)
+		return ret;
 
+	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
 
