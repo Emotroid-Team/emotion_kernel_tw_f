@@ -13,6 +13,92 @@ cat << CTAG
 		action:"generic proc/sys/net/ipv4/tcp_congestion_control",
 		values:[`while read values; do busybox printf "%s, \n" $values; done < proc/sys/net/ipv4/tcp_available_congestion_control`]
 	}},
+		{ SPane:{
+		title:"WiFi Power Mode",
+		description:" Control the WiFi power mode during screen on & off.\n\nMax = Maximum power savings, but reduced throughput & increased AP latency.\nFast = Good power savings & throughput with a slightly reduced AP latency.\nOff = No power savings and normal throughput/AP latency (may help with HD video streaming performance).\nForce Off = No power savings and normal AP latency. (force off even if bt is active).\n\nNote: You MUST suspend and resume display for changes to take effect!\n"
+        }},
+	{ SDescription:{
+		description:""
+	}},
+        { SOptionList:{
+		title:"WiFi Power Mode While Screen-On",
+		description:"",
+		default:"2",
+		unit:"",
+		action:"generic /sys/module/dhd/parameters/wifi_pm_awake",
+		values:{
+		   	"0":"Off",
+		   	"1":"Max",
+		   	"2":"Fast",
+		   	"3":"Force Off"
+		}
+	}},
+	{ SSpacer:{
+		   height:1
+	}},
+	{ SOptionList:{
+		title:"WiFi Power Mode While Screen-Off",
+		description:"",
+		default:"1",
+		unit:"",
+		action:"generic /sys/module/dhd/parameters/wifi_pm_suspended",
+		values:{
+			"0":"Off",
+		   	"1":"Max",
+		   	"2":"Fast",
+		   	"3":"Force Off"
+		}
+	}},
+	{ SSpacer:{
+		   height:1
+	}},
+	{ SPane:{
+		title:"WiFi DTIM Interval",
+		description:" The Delivery Traffic Indication Message (DTIM) corresponds to every beacon sent by the WiFi access point, and lets clients know data is about to be exchanged. This interval allows your WiFi chip to sleep longer before it has to wake up and listen for broadcasts and multicasts. By default the driver uses a value of 0, which means it defaults to what the WiFi access point defaults to. Often times that default is 1 (as frequently as possible). The higher this number, the less power the WiFi radio will use, but the longer it will take before it knows data has arrived (aka push notifications may be slow).\n\n\tNote: You MUST suspend and resume display for changes to take effect!\n"
+        }},
+        { SSeekBar:{
+       		title:"WiFi DTIM Interval While Screen-On",
+		description:" Sets the ratio of how many DTIMs the driver will skip while the screen is on. 1:1 = every time (as fast as possible), 1:2 = every other one, 1:3 = every third one, etc. 0 means use access point's default value.\n\n\tNote: You MUST suspend and resume for changes to take effect!\n",
+		default:0,
+		max:100,
+		min:0,
+		step:1,
+		unit:"",
+		action:"generic /sys/module/dhd/parameters/dtim_awake",
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SSeekBar:{
+       		title:"WiFi DTIM Interval While Screen-Off",
+		description:" Sets the ratio of how many DTIMs the driver will skip while the screen is off. 1:1 = every time (as fast as possible), 1:2 = every other one, 1:3 = every third one, etc. 0 means use access point's default value.\n\n\tNote: You MUST suspend and resume display for changes to take effect!\n",
+		default:0,
+		max:100,
+		min:0,
+		step:1,
+		unit:"",
+		action:"generic /sys/module/dhd/parameters/dtim_suspended",
+	}},
+	{ SDescription:{
+		description:""
+	}},
+    { SPane:{
+            title:"Wakelock control",
+            description:"Enter 1 to 8 (1 = stock, higher = lower wake time) for wlan_rx and wlan_ctrl wakelock control."
+    }},
+	{ SDescription:{
+		description:""
+	}},
+    { SSeekBar:{
+            title:"Wireless wakelock timeout control",
+            description:"",
+            unit:"",
+            min:1,
+            max:8,
+            step:1,
+            default:`cat /sys/module/dhd/parameters/wl_divide`,
+            action:"generic /sys/module/dhd/parameters/wl_divide"
+    }},
 	{ SPane:{
 		title:"Hardening the TCP/IP stack to SYN attack",
 		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
