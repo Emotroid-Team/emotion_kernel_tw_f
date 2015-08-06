@@ -99,6 +99,93 @@ cat << CTAG
             default:`cat /sys/module/dhd/parameters/wl_divide`,
             action:"generic /sys/module/dhd/parameters/wl_divide"
     }},
+	{ SDescription:{
+		description:""
+	}},
+	{ STitleBar:{
+		title:"Screen mirroring / AllShare Cast fix"
+	}},
+	{ SDescription:{
+		description:" Possible screen mirroring / AllShare Cast fix for rooted devices, works for some. Turn OFF WIFI first. Default is Enabled."
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/mirror mirror_fix)`,
+		action:"mirror mirror_fix",
+		values:[Disabled, Enabled,]
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ STitleBar:{
+		title:"Clean WIFI Lease"
+	}},
+	{ SDescription:{
+		description:" Clean WIFI DHCP IP Lease. Push the button to activate!"
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SButton:{
+		label:"Clean WIFI Lease",
+		action:"devtools fix_wifi"
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SPane:{
+		title:"TCP/IP Network Security Tweak",
+		description:" Protect against SYN & DoS attack etc. Default is Disabled."
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/network tcp_security)`,
+		action:"network tcp_security",
+		values:[Disabled, Enabled,]
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SPane:{
+		title:"TCP/IP Network Speed Tweak",
+		description:" Optimize TCP buffer sizes for various networks. Default is Enabled."
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/network tcp_speed)`,
+		action:"network tcp_speed",
+		values:[Disabled, Enabled,]
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SPane:{
+		title:"3G DNS Tweaks",
+		description:" Allows you to set the default DNS (Domain Name System) for 3G connections. Use this to potentially speed up your browsing experience (depending on DNS location) and improve your security. Default is Disabled.",
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SDescription:{
+		description:" * You must have a mobile data network connection before applying new DNS *"
+	}},
+	{ SDescription:{
+		description:""
+	}},
+	{ SOptionList:{
+		default:`echo $(/res/synapse/actions/network dns)`,
+		action:"network dns",
+		values:[Disabled, Google, OpenDNS, Comodo, Level3, Norton_DNS, Smart_Viper,]
+	}},
+	{ SDescription:{
+		description:""
+	}},
 	{ SPane:{
 		title:"Hardening the TCP/IP stack to SYN attack",
 		description:" Values provided by zeppelinrox@XDA Kick-Ass-Kernelizer. Defaults are OFF.",
