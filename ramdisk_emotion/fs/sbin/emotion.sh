@@ -154,6 +154,10 @@ if [ ! -f /data/.emotionkernel/bck_prof ]; then
 	cp -f /res/synapse/files/lmk_prof /data/.emotionkernel/lmk_prof
 	cp -f /res/synapse/files/mass_storage /data/.emotionkernel/mass_storage
 	cp -f /res/synapse/files/hotplug_prof /data/.emotionkernel/hotplug_prof
+	cp -f /res/synapse/files/tcp_security /data/.emotionkernel/tcp_security
+	cp -f /res/synapse/files/dns /data/.emotionkernel/dns
+	cp -f /res/synapse/files/tcp_speed /data/.emotionkernel/tcp_speed
+	cp -f /res/synapse/files/scr_mirror_fix /data/.emotionkernel/scr_mirror_fix
 fi
 
 stop thermal-engine
