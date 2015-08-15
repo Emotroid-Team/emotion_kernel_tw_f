@@ -158,6 +158,7 @@ if [ ! -f /data/.emotionkernel/bck_prof ]; then
 	cp -f /res/synapse/files/dns /data/.emotionkernel/dns
 	cp -f /res/synapse/files/tcp_speed /data/.emotionkernel/tcp_speed
 	cp -f /res/synapse/files/scr_mirror_fix /data/.emotionkernel/scr_mirror_fix
+	cp -f /res/synapse/files/wake_prof /data/.emotionkernel/wake_prof
 fi
 
 stop thermal-engine
