@@ -6,12 +6,27 @@ cat << CTAG
     elements:[
 	{ SPane:{
 		title:"Sweep2Wake Control",
-		description:"\n\tSettings pertaining to Sweep2Wake.\n\n\tLock your device sliding your finger from right to left until half the screen .\n"
+		description:"\n\tSettings pertaining to Sweep2Wake.\n\n\tUnlock/Lock your device sliding your finger from right to left or from left to right until half the screen.\n"
         }},
 	{ SOptionList:{
 		default:`echo $(/res/synapse/actions/touch wake)`,
 		action:"touch wake",
 		values:[Off, s2w+s2s, s2s,]
+	}},
+	{ SPane:{
+		title:"Doubletap2wake Control",
+		description:"\n\tSettings pertaining to DoubleTap2Wake.\n\n\tUnlock your device tapping two times on the screen .\n"
+        }},
+        { SOptionList:{
+       		title:"Enable or disable DT2W.",
+			description:"Default Off",
+			default:`cat /sys/android_touch/doubletap2wake`,
+			action:"generic /sys/android_touch/doubletap2wake",
+			values:{
+				"0":"Disabled",
+				"1":"dt2w",
+				"2":"dt2s",
+			}
 	}},
 	{ SPane:{
 		title:"Cypress-Touchkey",
