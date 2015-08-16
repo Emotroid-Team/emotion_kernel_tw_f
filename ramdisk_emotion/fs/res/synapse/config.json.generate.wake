@@ -77,7 +77,7 @@ cat << CTAG
 				}},
 					{ SOptionList:{
 						default:'$DT2W',
-						values:{ 0:"Disabled", 1:"dt2w", 2:"dt2s"
+						values:{ 0:"Disabled", 1:"dt2w"
 						},
 						action:"wake /sys/android_touch/doubletap2wake"
 					}},'
@@ -96,6 +96,19 @@ cat << CTAG
 						action:"wake /sys/android_touch/doubletap2wake_feather"
 					}},'
 			fi`
+			`if [ -f "/sys/android_touch/doubletap2sleep" ]; then
+			DT2S=\`$BB cat /sys/android_touch/doubletap2sleep\`
+				$BB echo '{ SPane:{
+					title:"DoubleTap2Sleep",
+					description:"Allows you to sleep the device by double tapping the screen.",
+				}},
+					{ SOptionList:{
+						default:'$DT2S',
+						values:{ 0:"Disabled", 1:"dt2s"
+						},
+						action:"wake /sys/android_touch/doubletap2sleep"
+					}},'
+			fi`			
 			`if [ -f "/sys/android_touch/sweep2wake" ]; then
 			S2W=\`$BB cat /sys/android_touch/sweep2wake\`
 				$BB echo '{ SPane:{
