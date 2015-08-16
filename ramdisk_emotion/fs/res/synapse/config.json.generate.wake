@@ -108,7 +108,31 @@ cat << CTAG
 						},
 						action:"wake /sys/android_touch/doubletap2sleep"
 					}},'
-			fi`			
+			fi`	
+			`if [ -f "/sys/android_touch/doubletap2sleep_x" ]; then
+			DT2SX=\`$BB cat /sys/android_touch/doubletap2sleep_x\`
+				$BB echo '
+					{ SSeekBar:{
+						description:"Used to control the allowed the width of the screen for dt2s. The value goes from left to right",
+						min:50,
+						max:1400,
+						step:1,
+						default:'$DT2SX',
+						action:"wake /sys/android_touch/doubletap2sleep_x"
+					}},'
+			fi`
+			`if [ -f "/sys/android_touch/doubletap2sleep_y" ]; then
+			DT2SY=\`$BB cat /sys/android_touch/doubletap2sleep_y\`
+				$BB echo '
+					{ SSeekBar:{
+						description:"Used to control the allowed the height of the screen for dt2s. The value goes from top to bottom",
+						min:50,
+						max:2500,
+						step:1,
+						default:'$DT2SY',
+						action:"wake /sys/android_touch/doubletap2sleep_y"
+					}},'
+			fi`
 			`if [ -f "/sys/android_touch/sweep2wake" ]; then
 			S2W=\`$BB cat /sys/android_touch/sweep2wake\`
 				$BB echo '{ SPane:{
