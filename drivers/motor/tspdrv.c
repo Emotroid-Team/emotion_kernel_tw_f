@@ -248,6 +248,11 @@ static struct timed_output_dev timed_output_vt = {
 	.enable   = enable_vibetonz_from_user,
 };
 
+void set_vibrate(int value)
+{
+	enable_vibetonz_from_user(&timed_output_vt, value);
+}
+
 static void vibetonz_start(void)
 {
 	int ret = 0;
