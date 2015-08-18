@@ -115,7 +115,7 @@ cat << CTAG
 					{ SSeekBar:{
 						description:"Used to control the allowed the width of the screen for dt2s. The value goes from left to right",
 						min:50,
-						max:1400,
+						max:1440,
 						step:1,
 						default:'$DT2SX',
 						action:"wake /sys/android_touch/doubletap2sleep_x"
@@ -127,7 +127,7 @@ cat << CTAG
 					{ SSeekBar:{
 						description:"Used to control the allowed the height of the screen for dt2s. The value goes from top to bottom",
 						min:50,
-						max:2500,
+						max:2560,
 						step:1,
 						default:'$DT2SY',
 						action:"wake /sys/android_touch/doubletap2sleep_y"
@@ -220,16 +220,32 @@ cat << CTAG
 			`if [ -f "/sys/android_touch/wake_timeout" ]; then
 			WT=\`$BB cat /sys/android_touch/wake_timeout\`
 				$BB echo '{ SPane:{
-					title:"Wake Timeout"
+					title:"Wake Timeout",
 				}},
 					{ SSeekBar:{
-						description:"Set a delay in minutes until the wake controls will be disabled, after screen off. Value of 0 means the touch controls will be kept enabled indefinitely.",
-						min:0,
-						max:30,
-						step:1,
-						default:'$WT',
-						action:"wake /sys/android_touch/wake_timeout"
-					}},'
+						description:"Set a delay until the wake controls will be disabled, after screen off. Value of 0 means the touch controls will be kept enabled indefinitely.",
+						default:'$WT', 
+						absolute:true,
+						action:"generic /sys/android_touch/wake_timeout",
+						values:{
+								"0":"Disabled",
+								"1000":"1 second",
+								"2000":"2 seconds",
+								"3000":"3 seconds",
+								"4000":"4 seconds",
+								"5000":"5 seconds",
+								"7000":"7 seconds",
+								"10000":"10 seconds",
+								"15000":"15 seconds",
+								"20000":"20 seconds",
+								"30000":"30 seconds",
+								"45000":"45 seconds",
+								"60000":"1 minute",
+								"120000":"2 minute",
+								"300000":"5 minute",
+								"600000":"10 minute"
+								}
+						}},'
 			fi`
 			`if [ -f "/sys/android_touch/wake_gestures" ]; then
 			WG=\`$BB cat /sys/android_touch/wake_gestures\`
