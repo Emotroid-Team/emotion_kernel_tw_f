@@ -40,15 +40,6 @@ static DEFINE_SPINLOCK(tz_lock);
 #define CAP			75
 
 /*
- * Use BUSY_BIN to check for fully busy rendering
- * intervals that may need early intervention when
- * seen with LONG_FRAME lengths
- */
-#define BUSY_BIN		95
-#define LONG_FRAME		25000
-#define MAX_TZ_VERSION		0
-
-/*
  * CEILING is 50msec, larger than any standard
  * frame length, but less than the idle timer.
  */
@@ -121,7 +112,6 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 	int act_level;
 	int norm_cycles;
 	int gpu_percent;
-	static int busy_bin, frame_flag;
 
 	if (priv->bus.num)
 		stats.private_data = &b;
@@ -179,15 +169,6 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 		return 0;
 	}
 
-	if ((stats.busy_time * 100 / stats.total_time) > BUSY_BIN) {
-		busy_bin += stats.busy_time;
-		if (stats.total_time > LONG_FRAME)
-			frame_flag = 1;
-	} else {
-		busy_bin = 0;
-		frame_flag = 0;
-	}
-
 	level = devfreq_get_freq_level(devfreq, stats.current_frequency);
 
 	if (level < 0) {
@@ -199,11 +180,8 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq,
 	 * If there is an extended block of busy processing,
 	 * increase frequency.  Otherwise run the normal algorithm.
 	 */
-	if (priv->bin.busy_time > CEILING ||
-		(busy_bin > CEILING && frame_flag)) {
+	if (priv->bin.busy_time > CEILING) {
 		val = -1 * level;
-		busy_bin = 0;
-		frame_flag = 0;
 	} else {
 #ifdef CONFIG_SIMPLE_GPU_ALGORITHM
 		if (simple_gpu_active != 0)
