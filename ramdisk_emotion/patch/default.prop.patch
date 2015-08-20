@@ -1,17 +1,17 @@
-From 35adc07bb10b428d906c1397f754385d02b642c5 Mon Sep 17 00:00:00 2001
+From e4dfda5c484cfdc61d7118e4b3ba53d11df566b9 Mon Sep 17 00:00:00 2001
 From: placiano <placiano80@gmail.com>
-Date: Sat, 27 Jun 2015 02:15:21 +0200
+Date: Sat, 23 May 2015 16:57:09 +0200
 Subject: [PATCH] patch default.prop
 
 ---
- SM-N910F/default.prop | 26 +++++++++++++++++++++-----
- 1 file changed, 21 insertions(+), 5 deletions(-)
+ default.prop | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
 
-diff --git a/SM-N910F/default.prop b/SM-N910F/default.prop
-index defbff1..953ca6d 100644
---- a/SM-N910F/default.prop
-+++ b/SM-N910F/default.prop
-@@ -2,15 +2,31 @@
+diff --git a/default.prop b/default.prop
+index defbff1..e838b7a 100644
+--- a/default.prop
++++ b/default.prop
+@@ -2,15 +2,20 @@
  # ADDITIONAL_DEFAULT_PROPERTIES
  #
  persist.cne.feature=0
@@ -32,22 +32,11 @@ index defbff1..953ca6d 100644
  dalvik.vm.dex2oat-Xmx=512m
  dalvik.vm.image-dex2oat-Xms=64m
  dalvik.vm.image-dex2oat-Xmx=64m
-+dalvik.vm.image-dex2oat-filter=everything
-+dalvik.vm.dex2oat-filter=everything
  ro.dalvik.vm.native.bridge=0
 +wlan.wfd.hdcp=disable
 +androidboot.selinux=0
 +ro.config.knox=0
 +ro.config.tima=0
-+windowsmgr.max_events_per_sec=90
-+ro.min_pointer_dur=8
-+ro.max.fling_velocity=12000
-+ro.min.fling_velocity=8000
-+video.accelerate.hw=1
-+debug.performance.tuning=1
-+persist.service.lgospd.enable=0
-+persist.service.pcsync.enable=0
-+touch.pressure.scale=0.003
 \ No newline at end of file
 --
 libgit2 0.22.2
