@@ -52,8 +52,21 @@ fi
 
 sync
 
+# kernel custom test
+if [ -e /data/emotiontest.log ]; then
+	rm /data/emotiontest.log
+fi
+
+echo  Kernel script is working !!! >> /data/emotiontest.log
+echo "excecuted on $(date +"%d-%m-%Y %r" )" >> /data/emotiontest.log
+echo  Done ! >> /data/emotiontest.log
+
 #FSTRIM
-/res/ext/fstrim.sh
+$BBX fstrim -v /system >> /data/emotiontest.log
+$BBX fstrim -v /cache >> /data/emotiontest.log
+$BBX fstrim -v /data >> /data/emotiontest.log
+
+sync
 
 #SSWAP to 1.5gb
 /res/ext/sswap.sh
@@ -109,16 +122,6 @@ chmod 444 /dev/erandom
 chmod 444 /dev/frandom
 
 sync
-
-# kernel custom test
-if [ -e /data/emotiontest.log ]; then
-	rm /data/emotiontest.log
-fi
-
-echo  Kernel script is working !!! >> /data/emotiontest.log
-echo "excecuted on $(date +"%d-%m-%Y %r" )" >> /data/emotiontest.log
-echo  Done ! >> /data/emotiontest.log
-
 
 #Set default values on boot
 echo "2649600" > /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq
