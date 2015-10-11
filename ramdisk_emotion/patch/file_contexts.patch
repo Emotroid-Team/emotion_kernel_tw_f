@@ -1,16 +1,16 @@
-From 7a8ece57cea252acbc49133ce67559f21650702d Mon Sep 17 00:00:00 2001
+From 4c5617b6d631b22e0209ea89a59012810252ef81 Mon Sep 17 00:00:00 2001
 From: placiano <placiano80@gmail.com>
-Date: Sat, 23 May 2015 16:55:45 +0200
-Subject: [PATCH] patch file_contexts
+Date: Tue, 1 Sep 2015 16:28:31 +0200
+Subject: [PATCH] SM-N910F_511: file_contexts patch
 
 ---
- file_contexts | 2 ++
+ SM-N910F_511/file_contexts | 2 ++
  1 file changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/file_contexts b/file_contexts
-index 07b67bf..fb90683 100644
---- a/file_contexts
-+++ b/file_contexts
+diff --git a/SM-N910F_511/file_contexts b/SM-N910F_511/file_contexts
+index 11bdf51..a29bba7 100644
+--- a/SM-N910F_511/file_contexts
++++ b/SM-N910F_511/file_contexts
 @@ -112,6 +112,8 @@
  /dev/uinput		u:object_r:uhid_device:s0
  /dev/uio[0-9]*		u:object_r:uio_device:s0

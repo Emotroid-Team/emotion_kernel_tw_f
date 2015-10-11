@@ -1,17 +1,17 @@
-From 3cd7247194e1bce3c60204714e460692d4b507df Mon Sep 17 00:00:00 2001
+From 8b600ad3994fb3a66ece34afdf072fb28e46c981 Mon Sep 17 00:00:00 2001
 From: placiano <placiano80@gmail.com>
-Date: Sat, 23 May 2015 16:59:12 +0200
-Subject: [PATCH] patch init.carrier.rc
+Date: Tue, 1 Sep 2015 16:26:48 +0200
+Subject: [PATCH] SM-N910F_511: init.carrier.rc patch
 
 ---
- init.carrier.rc | 12 ++++++------
+ SM-N910F_511/init.carrier.rc | 12 ++++++------
  1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/init.carrier.rc b/init.carrier.rc
-index f51c2fe..b65d8d2 100755
---- a/init.carrier.rc
-+++ b/init.carrier.rc
-@@ -161,12 +161,12 @@ service tbased /system/bin/tbased
+diff --git a/SM-N910F_511/init.carrier.rc b/SM-N910F_511/init.carrier.rc
+index 3f88b7a..e6f5f1b 100755
+--- a/SM-N910F_511/init.carrier.rc
++++ b/SM-N910F_511/init.carrier.rc
+@@ -164,12 +164,12 @@ service tbased /system/bin/tbased
      oneshot
  
  # SSWAP

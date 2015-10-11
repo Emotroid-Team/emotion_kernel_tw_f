@@ -150,7 +150,3 @@ obj-$(CONFIG_IP_VS) += ipvs/
 
 #inside secure vpn
 obj-$(CONFIG_VPNCLIENT_SECURITY) += interceptor/
-
-#Graphite flags
-CFLAGS_nf_conntrack_core.o := -fno-loop-unroll-and-jam
-CFLAGS_xt_hashlimit.o := -fno-loop-unroll-and-jam
