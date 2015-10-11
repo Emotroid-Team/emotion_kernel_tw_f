@@ -36,7 +36,7 @@
 #include "../../../../drivers/video/msm/mdss/samsung/S6E3FA2_AMS510CV01/dsi_panel_S6E3FA2_AMS510CV01_fhd_octa_cmd.dtsi"
 
 &mdss_dsi0 {
-	iovdd-supply = <&pma8084_l26>;
+		iovdd-supply = <&pma8084_l26>;
 	qcom,dsi-pref-prim-pan = <&ss_dsi_panel_S6E3FA2_AMS510CV01_FHD>;
 
 	qcom,platform-te-gpio = <&msmgpio 12 0>;

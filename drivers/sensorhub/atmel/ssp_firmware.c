@@ -23,7 +23,7 @@
 #define SSP_FIRMWARE_REVISION		15051200
 #define BL_FW_NAME			"ssp_at_tr.fw"
 #else
-#define SSP_FIRMWARE_REVISION		14111900
+#define SSP_FIRMWARE_REVISION		15021000
 #define BL_FW_NAME			"ssp_at.fw"
 #endif
 

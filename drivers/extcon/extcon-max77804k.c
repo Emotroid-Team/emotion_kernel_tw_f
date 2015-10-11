@@ -1116,6 +1116,13 @@ static void _detected(struct max77804k_muic_info *info, u32 new_state)
 
 	dev_info(info->dev, "state: cur=0x%x, new=0x%x, changed=0x%x\n",
 			current_state, new_state, changed_state);
+
+	if((current_state != 0x0) && (new_state == 0x1)) {
+		dev_info(info->dev, "Force detach.  cur=0x%x, new=0x%x, changed=0x%x\n",
+				current_state, new_state, changed_state);
+		new_state = 0;
+	}
+
 	for (index = 0; index < SUPPORTED_CABLE_MAX; index++) {
 		if (!(changed_state & BIT(index)))
 			continue;

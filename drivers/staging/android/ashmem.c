@@ -295,7 +295,7 @@ static int ashmem_mmap(struct file *file, struct vm_area_struct *vma)
 	struct ashmem_area *asma = file->private_data;
 	int ret = 0;
 #ifdef CONFIG_TIMA_RKP	
-	if (vma->vm_end - vma->vm_start) {
+	if ((vma->vm_end - vma->vm_start) && (boot_mode_security == 1)) {
 		cpu_v7_tima_iommu_opt(vma->vm_start, vma->vm_end, (unsigned long)vma->vm_mm->pgd);
 		__asm__ __volatile__ (
 		"mcr    p15, 0, r0, c8, c3, 0\n"

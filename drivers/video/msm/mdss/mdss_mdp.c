@@ -331,6 +331,23 @@ void mdss_enable_irq(struct mdss_hw *hw)
 }
 EXPORT_SYMBOL(mdss_enable_irq);
 
+void mdss_enable_irq_wake(bool enable)
+{
+	unsigned long irq_flags;
+
+	spin_lock_irqsave(&mdss_lock, irq_flags);
+	if (enable && !mdss_res->irq_wakeup_en && mdss_res->irq_mask) {
+		enable_irq_wake(mdss_res->irq);
+		mdss_res->irq_wakeup_en = true;
+	} else if (!enable && mdss_res->irq_wakeup_en) {
+		disable_irq_wake(mdss_res->irq);
+		mdss_res->irq_wakeup_en = false;
+	}
+	spin_unlock_irqrestore(&mdss_lock, irq_flags);
+	pr_debug("%s en=%d mask=%x irq_wakeup_en=%d", __func__,
+		enable, mdss_res->irq_mask, mdss_res->irq_wakeup_en);
+}
+
 void mdss_disable_irq(struct mdss_hw *hw)
 {
 	unsigned long irq_flags;
@@ -888,11 +905,11 @@ void mdss_mdp_clk_ctrl(int enable, int isr)
 		}
 	}
 
-	MDSS_XLOG(mdp_clk_cnt, changed, enable, current->pid);
 	pr_debug("%s: clk_cnt=%d changed=%d enable=%d\n",
 			__func__, mdp_clk_cnt, changed, enable);
 
 	if (changed) {
+		MDSS_XLOG(mdp_clk_cnt, changed, enable, current->pid);
 		if (enable)
 			pm_runtime_get_sync(&mdata->pdev->dev);
 
@@ -1180,6 +1197,14 @@ static int mdss_mdp_debug_init(struct mdss_data_type *mdata)
 		return rc;
 #if defined (CONFIG_FB_MSM_MDSS_SAMSUNG)
 	mdss_debug_register_base("mdp", mdata->mdss_base, 0x4d40 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("pp0", mdata->mdss_base + 0x12F00, 0x40 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("pp1", mdata->mdss_base + 0x13000, 0x40 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("pp2", mdata->mdss_base + 0x13100, 0x40 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("wb0", mdata->mdss_base + 0x11100, 0x80 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("wb1", mdata->mdss_base + 0x11500, 0x80 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("wb2", mdata->mdss_base + 0x11900, 0x80 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("wb3", mdata->mdss_base + 0x11D00, 0x80 /*mdata->mdp_reg_size*/);
+	mdss_debug_register_base("wb4", mdata->mdss_base + 0x12100, 0x80 /*mdata->mdp_reg_size*/);
 #else
 	mdss_debug_register_base("mdp", mdata->mdss_base, mdata->mdp_reg_size);
 #endif

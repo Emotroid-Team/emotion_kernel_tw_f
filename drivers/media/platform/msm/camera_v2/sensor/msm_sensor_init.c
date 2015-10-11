@@ -152,7 +152,11 @@ static ssize_t back_camera_type_show(struct device *dev,
 static ssize_t front_camera_type_show(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
+#if defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
 	char cam_type[] = "S5K6D1YX\n";
+#else
+	char cam_type[] = "S5K8B1YX\n";
+#endif
 
 	 return snprintf(buf, sizeof(cam_type), "%s", cam_type);
 }

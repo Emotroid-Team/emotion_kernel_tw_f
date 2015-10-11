@@ -94,6 +94,7 @@ DHDCFLAGS += -DCUSTOM_TDLS_RSSI_THRESHOLD_LOW=-85
 DHDCFLAGS += -DROAM_AP_ENV_DETECTION
 DHDCFLAGS += -DROAM_ENABLE -DROAM_CHANNEL_CACHE -DROAM_API
 DHDCFLAGS += -DENABLE_FW_ROAM_SUSPEND
+DHDCFLAGS += -DDHD_LOSSLESS_ROAMING
 
 # CCX
 ifeq ($(CONFIG_BRCM_CCX),y)
@@ -145,7 +146,7 @@ endif
 endif
 
 # DTIM listen interval in suspend mode(0 means follow AP's DTIM period)
-DHDCFLAGS += -DCUSTOM_SUSPEND_BCN_LI_DTIM=0
+DHDCFLAGS += -DCUSTOM_SUSPEND_BCN_LI_DTIM=3
 
 # Ioctl timeout 10000ms
 DHDCFLAGS += -DIOCTL_RESP_TIMEOUT=10000
@@ -163,26 +164,63 @@ DHDCFLAGS += -DCONFIG_CONTROL_PM
 DHDCFLAGS += -DCONFIG_HAS_WAKELOCK
 
 # Used short dwell time during initial scan
-# DHDCFLAGS += -DUSE_INITIAL_SHORT_DWELL_TIME
+DHDCFLAGS += -DUSE_INITIAL_SHORT_DWELL_TIME
 
 # Japan ccode revision will be fixed by nvram's value
 DHDCFLAGS += -DKEEP_JP_REGREV
+
+# NAN feature
+ifeq ($(CONFIG_WL_NAN),y)
+DHDCFLAGS += -DWL_NAN
+endif
+
+# FCC power limit control on ch12/13.
+DHDCFLAGS += -DFCC_PWR_LIMIT_2G
+# US/988 country code with higher power on UNII-1 5G band
+DHDCFLAGS += -DDHD_SUPPORT_FCC_US_988
+
+# WFA Certification feature
+DHDCFLAGS += -DUSE_WFA_CERT_CONF
 
 ##############################
 # Android Platform Definition
 ##############################
 
-##########
-# KitKat
-##########
+###########
+# Lollipop
+###########
 # Definitions are filtered by Kernel version
 DHDCFLAGS += -DWL_ENABLE_P2P_IF
 DHDCFLAGS += -DWL_SUPPORT_BACKPORTED_KPATCHES
-# Default definitions for KitKat
+# Default definitions for KitKat, Lollipop
 DHDCFLAGS += -DWL_CFG80211_STA_EVENT
 DHDCFLAGS += -DWL_IFACE_COMB_NUM_CHANNELS
 # To support p2p private command on kernel 3.8 or above
 DHDCFLAGS += -DWL_NEWCFG_PRIVCMD_SUPPORT
+# Link Statistics feature
+DHDCFLAGS += -DLINKSTAT_SUPPORT
+
+# To support GSCAN
+DHDCFLAGS += -DGSCAN_SUPPORT
+
+# To support RTT
+DHDCFLAGS += -DRTT_SUPPORT
+
+# To support WL_VENDOR_EXT_SUPPORT
+DHDCFLAGS += -DWL_VENDOR_EXT_SUPPORT
+
+# Extra file list for Lollipop
+DHD_ANDROID_OFILES := wl_cfgvendor.o dhd_rtt.o
+
+# GN4 platform still disabled Lollipop features
+ifeq ($(filter y,$(CONFIG_MACH_UNIVERSAL5433) $(CONFIG_ARCH_APQ8084)),y)
+DHD_ANDROID_OFILES :=$(filter-out wl_cfgvendor.o dhd_rtt.o,$(DHD_ANDROID_OFILES))
+DHDCFLAGS :=$(filter-out -DLINKSTAT_SUPPORT,$(DHDCFLAGS))
+DHDCFLAGS :=$(filter-out -DGSCAN_SUPPORT,$(DHDCFLAGS))
+DHDCFLAGS :=$(filter-out -DRTT_SUPPORT,$(DHDCFLAGS))
+DHDCFLAGS :=$(filter-out -DWL_VENDOR_EXT_SUPPORT,$(DHDCFLAGS))
+endif
+
 
 
 
@@ -203,7 +241,7 @@ ifneq ($(CONFIG_BCM4358),)
   DHDCFLAGS += -DUSE_CID_CHECK
   DHDCFLAGS += -DENABLE_BCN_LI_BCN_WAKEUP
   DHDCFLAGS += -DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT
-  DHDCFLAGS += -DCUSTOM_BCN_TIMEOUT=4
+  DHDCFLAGS += -DCUSTOM_BCN_TIMEOUT=6
   DHDCFLAGS += -DSOFTAP_UAPSD_OFF
 # tput enhancement for common
   DHDCFLAGS += -DUSE_WL_TXBF
@@ -236,6 +274,12 @@ ifeq ($(BUS_IFACE_PCIE),y)
   DHDCFLAGS += -DCUSTOM_AMPDU_MPDU=32
   DHDCFLAGS += -DCUSTOM_AMPDU_RELEASE=16
   DHDCFLAGS += -DCUSTOM_AMSDU_AGGSF=4
+  DHDCFLAGS += -DDHDTCPACK_SUPPRESS
+endif
+
+# Disabled DHDTCPACK_SUPPRESS for T Project / Enabled for Zero Project
+ifeq ($(filter y,$(CONFIG_MACH_UNIVERSAL5433) $(CONFIG_ARCH_APQ8084)),y)
+  DHDCFLAGS :=$(filter-out -DDHDTCPACK_SUPPRESS,$(DHDCFLAGS))
 endif
 
 ifeq ($(CONFIG_ARCH_MSM),y)
@@ -243,14 +287,14 @@ ifeq ($(CONFIG_ARCH_MSM),y)
 endif
 
 # New Features
-  DHDCFLAGS += -DWL11U
+  DHDCFLAGS += -DWL11U -DMFP
   DHDCFLAGS += -DBCMCCX
   DHDCFLAGS += -DWES_SUPPORT
   DHDCFLAGS += -DOKC_SUPPORT
   DHDCFLAGS += -DWLTDLS
   DHDCFLAGS += -DWLFBT
   DHDCFLAGS += -DDHD_ENABLE_LPC
-  DHDCFLAGS += -DWLAIBSS
+  DHDCFLAGS += -DWLAIBSS -DWLAIBSS_PS
   DHDCFLAGS += -DSUPPORT_LTECX
   DHDCFLAGS += -DSUPPORT_2G_VHT
   DHDCFLAGS += -DSUPPORT_WL_TXPOWER
@@ -259,6 +303,11 @@ ifeq ($(CONFIG_BCM4358),y)
   DHDCFLAGS += -DUSE_LATE_INITCALL_SYNC
   DHDCFLAGS += -fno-pic
   DRIVER_TYPE = y
+endif
+ifeq ($(CONFIG_BCM4358),m)
+ifeq ($(CONFIG_64BIT),y)
+  DHDCFLAGS += -fno-pic
+endif
 endif
 ifeq ($(BUS_IFACE_SDIO),y)
   DHDCFLAGS += -DCUSTOM_PSPRETEND_THR=30
@@ -304,7 +353,7 @@ endif
 
 
 # New Features
-  DHDCFLAGS += -DWL11U
+  DHDCFLAGS += -DWL11U -DMFP
   DHDCFLAGS += -DBCMCCX
   DHDCFLAGS += -DWES_SUPPORT
   DHDCFLAGS += -DOKC_SUPPORT
@@ -533,19 +582,24 @@ endif
 
 
 ifeq ($(CONFIG_OF),y)
+ifneq ($(CONFIG_MACH_UNIVERSAL7420),)
+DHDCFLAGS += -DDHD_OF_SUPPORT
+DHDCFLAGS += -DBCMPCIE_OOB_HOST_WAKE
+endif
 ifneq ($(CONFIG_MACH_UNIVERSAL5433),)
 DHDCFLAGS += -DDHD_OF_SUPPORT
 DHDCFLAGS += -DBCMPCIE_OOB_HOST_WAKE
 endif
 ifneq ($(CONFIG_MACH_UNIVERSAL5430),)
-obj-$(CONFIG_MACH_UNIVERSAL5430) += dhd_custom_exynos.o
 DHDCFLAGS += -DDHD_OF_SUPPORT
 endif
 ifneq ($(CONFIG_MACH_UNIVERSAL5422),)
-obj-$(CONFIG_MACH_UNIVERSAL5422) += dhd_custom_exynos.o
 DHDCFLAGS += -DDHD_OF_SUPPORT
 endif
+ifneq ($(CONFIG_ARCH_MSM8994),)
+DHDCFLAGS += -DDHD_OF_SUPPORT
 endif
+endif # CONFIG_OF
 
 ##############################################################
 # dhd_sec_feature.h
@@ -568,7 +622,7 @@ DHDOFILES := dhd_pno.o dhd_common.o dhd_ip.o dhd_custom_gpio.o dhd_custom_sec.o 
 	bcmutils.o bcmwifi_channels.o hndpmu.o linux_osl.o sbutils.o siutils.o \
 	wl_android.o wl_cfg80211.o wl_cfgp2p.o wl_cfg_btcoex.o wldev_common.o \
 	wl_linux_mon.o wl_roam.o dhd_linux_platdev.o dhd_linux_wq.o wl_cfg_btcoex.o \
-	hnd_pktq.o hnd_pktpool.o wl_cfgnan.o bcmxtlv.o
+	hnd_pktq.o hnd_pktpool.o
 
 
 ifeq ($(BUS_IFACE_SDIO),y)
@@ -581,11 +635,18 @@ ifeq ($(BUS_IFACE_PCIE),y)
 DHDOFILES += dhd_pcie.o dhd_pcie_linux.o pcie_core.o dhd_flowring.o dhd_msgbuf.o
 endif
 
+DHDOFILES += $(DHD_ANDROID_OFILES)
+
 # For SPI projects
 ifeq ($(CONFIG_SPI_SC8810),y)
 DHDOFILES += bcmsdspi_linux.o bcmspibrcm.o
 DHDOFILES :=$(filter-out bcmsdh_sdmmc.o,$(DHDOFILES))
 DHDOFILES :=$(filter-out bcmsdh_sdmmc_linux.o,$(DHDOFILES))
+endif
+
+# NAN feature
+ifeq ($(CONFIG_WL_NAN),y)
+DHDOFILES += wl_cfgnan.o bcmxtlv.o
 endif
 
 dhd-y := $(DHDOFILES)

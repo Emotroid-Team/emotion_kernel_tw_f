@@ -144,7 +144,7 @@ struct mutex bluesleep_mutex;
 
 struct proc_dir_entry *bluetooth_dir, *sleep_dir;
 
-#if defined(CONFIG_SEC_MIF_UART_SWITCH)
+#if 0 //For debug : defined(CONFIG_SEC_MIF_UART_SWITCH)
 extern unsigned int system_rev;
 #define GPIO_UART_SEL 682 /* PMA8084 GPIO_19 */
 #define GPIO_UART_SEL_REV07 116 /*MSM GPIO 116*/
@@ -299,7 +299,7 @@ static void bluesleep_tx_data_wakeup(void)
  */
 static void bluesleep_sleep_work(struct work_struct *work)
 {
-#if defined(CONFIG_SEC_MIF_UART_SWITCH)
+#if 0 //For debug : defined(CONFIG_SEC_MIF_UART_SWITCH)
 	int uart_sel = 0;
 #endif
 	if (mutex_is_locked(&bluesleep_mutex))
@@ -339,7 +339,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 				return;
 			}
 
-#if defined(CONFIG_SEC_MIF_UART_SWITCH)
+#if 0 //For debug : defined(CONFIG_SEC_MIF_UART_SWITCH)
 			if(system_rev <= 6 /*board rev 06*/) {
 				uart_sel = gpio_get_value(GPIO_UART_SEL);
 			}

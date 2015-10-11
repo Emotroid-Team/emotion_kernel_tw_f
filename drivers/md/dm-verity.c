@@ -18,7 +18,6 @@
 
 #include <linux/module.h>
 #include <linux/device-mapper.h>
-#include <linux/random.h>
 #include <crypto/hash.h>
 
 #define DM_MSG_PREFIX			"verity"
@@ -30,7 +29,6 @@
 #define DM_VERITY_MAX_LEVELS		63
 
 #define	FLAT_HASH_VERIFICATION		0
-#define	PROBABILISTIC_VERIFICATION 	1
 
 static unsigned dm_verity_prefetch_cluster = DM_VERITY_DEFAULT_PREFETCH_SIZE;
 
@@ -515,12 +513,7 @@ static int verity_map(struct dm_target *ti, struct bio *bio)
 {
 	struct dm_verity *v = ti->private;
 	struct dm_verity_io *io;
-#if PROBABILISTIC_VERIFICATION == 1
-#define PROBABILITY	10 /* Only edit this. Make sure it divides 100 nicely */
-#define	NR_ONE_OUT_OF	(100/PROBABILITY)
-	static unsigned int dm_verity_ctr = 0;
-	static unsigned int dm_verity_measure = 0;
-#endif
+
 	bio->bi_bdev = v->data_dev->bdev;
 	bio->bi_sector = verity_map_sector(v, bio->bi_sector);
 
@@ -538,21 +531,6 @@ static int verity_map(struct dm_target *ti, struct bio *bio)
 
 	if (bio_data_dir(bio) == WRITE)
 		return -EIO;
-
-#if PROBABILISTIC_VERIFICATION == 1
-	if (dm_verity_ctr != dm_verity_measure) {
-		dm_verity_ctr++;
-		goto skip_verity_check;
-	}
-
-	dm_verity_ctr++;
-	/* Intentionally not protected by locks. It does not matter */
-	if (dm_verity_ctr > NR_ONE_OUT_OF) {
-		dm_verity_ctr = 0;
-		dm_verity_measure = get_random_int() % NR_ONE_OUT_OF;
-	}
-
-#endif
 
 	io = dm_per_bio_data(bio, ti->per_bio_data_size);
 	io->v = v;
@@ -572,9 +550,7 @@ static int verity_map(struct dm_target *ti, struct bio *bio)
 	       io->io_vec_size * sizeof(struct bio_vec));
 
 	verity_submit_prefetch(v, io);
-#if PROBABILISTIC_VERIFICATION == 1
-skip_verity_check:
-#endif
+
 	generic_make_request(bio);
 
 	return DM_MAPIO_SUBMITTED;

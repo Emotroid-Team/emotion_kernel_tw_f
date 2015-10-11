@@ -1037,11 +1037,11 @@ static void sec_bat_swelling_check(struct sec_battery_info *battery, int tempera
 				battery->swelling_block) {
 				pr_info("%s: swelling mode recharging start. Vbatt(%d)\n",
 					__func__, battery->voltage_now);
+				sec_bat_set_charge(battery, true);
 				/* change 4.25V float voltage */
 				val.intval = battery->pdata->swelling_drop_float_voltage;
 				psy_do_property(battery->pdata->charger_name, set,
 						POWER_SUPPLY_PROP_VOLTAGE_MAX, val);
-				sec_bat_set_charge(battery, true);
 				battery->swelling_block = false;
 			}
 		}
@@ -1117,6 +1117,7 @@ static bool sec_bat_temperature_check(
 	} else if ((temp_value <= battery->temp_high_recovery) &&
 				(temp_value >= battery->temp_low_recovery)) {
 		if (battery->health == POWER_SUPPLY_HEALTH_OVERHEAT ||
+			battery->health == POWER_SUPPLY_HEALTH_OVERHEATLIMIT ||
 		    battery->health == POWER_SUPPLY_HEALTH_COLD) {
 			if (battery->temp_recover_cnt <
 				battery->pdata->temp_check_count)
@@ -1182,13 +1183,17 @@ static bool sec_bat_temperature_check(
 			 POWER_SUPPLY_STATUS_NOT_CHARGING)) {
 			dev_info(battery->dev,
 					"%s: Safe Temperature\n", __func__);
-			if (battery->capacity >= 100)
+			if (battery->capacity >= 100) {
 				battery->status =
 					POWER_SUPPLY_STATUS_FULL;
-			else	/* Normal Charging */
+				battery->is_recharging = true;
+			} else {/* Normal Charging */
 				battery->status =
 					POWER_SUPPLY_STATUS_CHARGING;
+			}
 			/* turn on charger by cable type */
+			battery->charging_mode =
+					SEC_BATTERY_CHARGING_1ST;
 			sec_bat_set_charge(battery, true);
 			return false;
 		}

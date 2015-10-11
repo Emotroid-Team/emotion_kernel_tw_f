@@ -249,6 +249,10 @@ static int hdmi_hdcp_authentication_part1(struct hdmi_hdcp_ctrl *hdcp_ctrl)
 		rc = -EINVAL;
 		goto error;
 	}
+#else
+	/* put some delay to guarantee ddc_bypass(true) behavior
+	 * in case of AP_HDCP_PART1 */
+	msleep(200);
 #endif
 	bksv = hdcp_ctrl->current_tp.bksv;
 
@@ -642,6 +646,8 @@ error:
 						HDCP_STATE_NAME);
 					break;
 				}
+				else
+					DEV_INFO("%s: BCAPS=0x%02X\n", __func__, *(ddc_data.data_buf));
 			}
 		}
 
@@ -651,6 +657,10 @@ error:
 			DEV_INFO("%s: %s: Authentication Part I successful\n",
 				__func__, HDCP_STATE_NAME);
 		}
+
+		/* put some delay to guarantee ddc_bypass(false) behavior
+		 * in case of AP_HDCP_PART1 */
+		msleep(100);
 #else
 		/* Enable HDCP Encryption */
 		DSS_REG_W(io, HDMI_HDCP_CTRL, BIT(0) | BIT(8));
@@ -1292,36 +1302,6 @@ int hdmi_hdcp_authenticate(void *input)
 	return 0;
 } /* hdmi_hdcp_authenticate */
 
-/*
- * Only retries defined times then abort current authenticating process
- * Send check_topology message to notify any hdcpmanager's client of non-
- * hdcp authenticated data link so the client can tear down any active secure
- * playback.
- * Reduce hdcp link to regular hdmi data link with hdcp disabled so any
- * un-secure like UI & menu still can be sent over HDMI and display.
- */
-#define AUTH_RETRIES_TIME (30)
-static int hdmi_msm_if_abort_reauth(struct hdmi_hdcp_ctrl *hdcp_ctrl)
-{
-	int ret = 0;
-
-	if (!hdcp_ctrl) {
-		DEV_ERR("%s: invalid input\n", __func__);
-		return -EINVAL;
-	}
-
-	if (++hdcp_ctrl->auth_retries == AUTH_RETRIES_TIME) {
-		mutex_lock(hdcp_ctrl->init_data.mutex);
-		hdcp_ctrl->hdcp_state = HDCP_STATE_INACTIVE;
-		mutex_unlock(hdcp_ctrl->init_data.mutex);
-
-		hdcp_ctrl->auth_retries = 0;
-		ret = -ERANGE;
-	}
-
-	return ret;
-}
-
 int hdmi_hdcp_reauthenticate(void *input)
 {
 	struct hdmi_hdcp_ctrl *hdcp_ctrl = (struct hdmi_hdcp_ctrl *)input;
@@ -1365,13 +1345,6 @@ int hdmi_hdcp_reauthenticate(void *input)
 	DSS_REG_W(hdcp_ctrl->init_data.core_io, HDMI_HPD_CTRL,
 		DSS_REG_R(hdcp_ctrl->init_data.core_io,
 		HDMI_HPD_CTRL) | BIT(28));
-
-	ret = hdmi_msm_if_abort_reauth(hdcp_ctrl);
-
-	if (ret) {
-		DEV_ERR("%s: abort reauthentication!\n", __func__);
-		return ret;
-	}
 
 	/* Restart authentication attempt */
 	DEV_DBG("%s: %s: Scheduling work to start HDCP authentication",
@@ -1456,8 +1429,6 @@ int hdmi_hdcp_isr(void *input)
 
 	/* Ignore HDCP interrupts if HDCP is disabled */
 	if (HDCP_STATE_INACTIVE == hdcp_ctrl->hdcp_state) {
-		DEV_ERR("%s: HDCP inactive. Just clear int and return.\n",
-			__func__);
 		DSS_REG_W(io, HDMI_HDCP_INT_CTRL, HDCP_INT_CLR);
 		return 0;
 	}

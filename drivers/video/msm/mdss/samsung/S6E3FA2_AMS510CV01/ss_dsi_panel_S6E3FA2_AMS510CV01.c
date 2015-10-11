@@ -214,6 +214,25 @@ static int mdss_panel_on_pre(struct mdss_dsi_ctrl_pdata *ctrl)
 	return true;
 }
 
+static int mdss_panel_on_post(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct samsung_display_driver_data *vdd = check_valid_ctrl(ctrl);
+
+	if (IS_ERR_OR_NULL(vdd)) {
+		pr_err("%s: Invalid data ctrl : 0x%zx vdd : 0x%zx", __func__, (size_t)ctrl, (size_t)vdd);
+		return false;
+	}
+
+	pr_info("%s+: ndx=%d \n", __func__, ctrl->ndx);
+
+	//if((mdss_panel_id1_get(ctrl) == 0x20) || (mdss_panel_id1_get(ctrl) == 0x40))
+		mdss_samsung_send_cmd(ctrl, PANEL_HSYNC_ON);
+
+	pr_info("%s-: ndx=%d \n", __func__, ctrl->ndx);
+
+	return true;
+}
+
 static int mdss_panel_revision(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	struct samsung_display_driver_data *vdd = check_valid_ctrl(ctrl);
@@ -892,7 +911,7 @@ static void mdss_panel_init(struct samsung_display_driver_data *vdd)
 
 	/* ON/OFF */
 	vdd->panel_func.samsung_panel_on_pre = mdss_panel_on_pre;
-	vdd->panel_func.samsung_panel_on_post = NULL;
+	vdd->panel_func.samsung_panel_on_post = mdss_panel_on_post;
 
 	/* DDI RX */
 	vdd->panel_func.samsung_panel_revision = mdss_panel_revision;

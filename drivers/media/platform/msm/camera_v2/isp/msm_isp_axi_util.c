@@ -1352,9 +1352,11 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 			vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev, 0, 1);
 			vfe_dev->hw_info->vfe_ops.core_ops.init_hw_reg(vfe_dev);
 			rc = 0;
-		} else
+		} else {
+			pr_err("%s: VFE%d disable CAMIF on frame bound\n", __func__, vfe_dev->pdev->id);
 			vfe_dev->hw_info->vfe_ops.core_ops.
 				update_camif_state(vfe_dev, DISABLE_CAMIF);
+		}
 	}
 
 	msm_isp_update_camif_output_count(vfe_dev, stream_cfg_cmd);

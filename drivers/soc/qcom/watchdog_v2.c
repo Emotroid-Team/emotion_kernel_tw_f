@@ -375,7 +375,7 @@ static irqreturn_t wdog_bark_handler(int irq, void *dev_id)
 	__raw_writel(1, wdog_dd->base + WDT0_RST);
 	mb();
 	/* Delay to make sure bite occurs */
-	mdelay(1);
+	mdelay(3);/* To safetely make sure bite. 1ms -> 3ms */
 	pr_err("Wdog - STS: 0x%x, CTL: 0x%x, BARK TIME: 0x%x, BITE TIME: 0x%x",
 		__raw_readl(wdog_dd->base + WDT0_STS),
 		__raw_readl(wdog_dd->base + WDT0_EN),

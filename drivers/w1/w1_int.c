@@ -179,6 +179,7 @@ int w1_add_master_device(struct w1_bus_master *master)
 #ifdef CONFIG_W1_WORKQUEUE
 		pr_info("%s : W1 workqueue will start\n", __func__);
 		INIT_DELAYED_WORK(&dev->w1_dwork, w1_work);
+		INIT_DELAYED_WORK(&dev->w1_dwork_uevent, w1_work_uevent);
 
 		schedule_delayed_work(&dev->w1_dwork, HZ / 20);
 #else

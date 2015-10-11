@@ -3133,7 +3133,8 @@ static struct msm_gpiomux_config gpio_nc_configs[] __initdata = {
 	defined(CONFIG_MACH_TRLTE_VZW) || defined(CONFIG_MACH_TRLTE_USC) || \
 	defined(CONFIG_MACH_TRLTE_CAN) || defined(CONFIG_MACH_TBLTE_VZW) || \
 	defined(CONFIG_MACH_TBLTE_ATT) || defined(CONFIG_MACH_TBLTE_TMO) || \
-	defined(CONFIG_MACH_TBLTE_CHN) || defined(CONFIG_MACH_TBLTE_USC)
+	defined(CONFIG_MACH_TBLTE_CHN) || defined(CONFIG_MACH_TBLTE_USC) || \
+	defined(CONFIG_MACH_TRLTE_SPR)
 
 	/* CTI_PAIR2 */
 	GPIOMUX_SET_NC(123),
@@ -3267,6 +3268,10 @@ void __init apq8084_init_gpiomux(void)
 	} else {
 		msm_gpiomux_install(apq8084_hsic_configs,
 			ARRAY_SIZE(apq8084_hsic_configs));
+#if 0
+		msm_gpiomux_install_nowrite(msm_hdmi_configs,
+			ARRAY_SIZE(msm_hdmi_configs));
+#endif
 		msm_gpiomux_install(msm_hdmi_configs,
 			ARRAY_SIZE(msm_hdmi_configs));
 	}

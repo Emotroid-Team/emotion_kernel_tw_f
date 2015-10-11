@@ -64,6 +64,20 @@ static int w1_timeout = 10;
 int w1_max_slave_count = 10;
 int w1_max_slave_ttl = 10;
 #endif /* CONFIG_W1_SLAVE_DS28E15 */
+#ifdef CONFIG_W1_WORKQUEUE
+static int fail_count=0;
+
+static void w1_fail_count(int state)
+{
+	if (state)
+		fail_count = 0;
+	else
+		fail_count++;
+
+	if (fail_count > 10000)
+		fail_count = 2;
+}
+#endif
 
 module_param_named(timeout, w1_timeout, int, 0);
 module_param_named(max_slave_count, w1_max_slave_count, int, 0);
@@ -99,12 +113,15 @@ static void w1_slave_release(struct device *dev)
 
 	dev_dbg(dev, "%s: Releasing %s.\n", __func__, sl->name);
 	printk(KERN_ERR "%s: Releasing %s.\n", __func__, sl->name);
-
+#if defined(CONFIG_W1_SLAVE_DS28EL35)
 	/* add for sending uevent*/
 	pr_info("%s: uevent send 0\n", __func__);
 	input_report_switch(sl->master->bus_master->input, SW_W1, 0);
 	input_sync(sl->master->bus_master->input);
 	/* end */
+#else
+	schedule_delayed_work(&sl->master->w1_dwork_uevent, HZ * 3);
+#endif
 
 	while (atomic_read(&sl->refcnt)) {
 		dev_dbg(dev, "Waiting for %s to become free: refcnt=%d.\n",
@@ -846,6 +863,10 @@ static int w1_attach_slave_device(struct w1_master *dev, struct w1_reg_num *rn)
 	msg.type = W1_SLAVE_ADD;
 	w1_netlink_send(dev, &msg);
 
+#ifdef CONFIG_W1_WORKQUEUE
+		w1_fail_count(1);
+#endif
+
 	return 0;
 }
 
@@ -1018,6 +1039,9 @@ void w1_search(struct w1_master *dev, u8 search_type, w1_slave_found_callback cb
 		 */
 		mutex_lock(&dev->bus_mutex);
 		if (w1_reset_bus(dev)) {
+#ifdef CONFIG_W1_WORKQUEUE
+			w1_fail_count(0);
+#endif
 			mutex_unlock(&dev->bus_mutex);
 			dev_dbg(&dev->dev, "No devices present on the wire.\n");
 			break;
@@ -1159,6 +1183,20 @@ void w1_work(struct work_struct *work)
 	}
 
 	schedule_delayed_work(&dev->w1_dwork, HZ * 2);
+}
+
+void w1_work_uevent(struct work_struct *work)
+{
+	struct w1_master *dev =
+		container_of(work, struct w1_master, w1_dwork_uevent.work);
+
+	if (fail_count) {
+		/* add for sending uevent*/
+		pr_info("%s: uevent send 0 after fail once\n", __func__);
+		input_report_switch(dev->bus_master->input, SW_W1, 0);
+		input_sync(dev->bus_master->input);
+		/* end */
+	}
 }
 #endif
 

@@ -561,6 +561,10 @@ static void mdss_mdp_perf_calc_mixer(struct mdss_mdp_mixer *mixer,
 		if (!pinfo)	/* perf for bus writeback */
 			perf->bw_overlap =
 				fps * mixer->width * mixer->height * 3;
+		/* for command mode, run as fast as the link allows us */
+		else if ((pinfo->type == MIPI_CMD_PANEL) &&
+			 (pinfo->mipi.dsi_pclk_rate > perf->mdp_clk_rate))
+			perf->mdp_clk_rate = pinfo->mipi.dsi_pclk_rate;
 	}
 
 	/*
@@ -861,7 +865,7 @@ static void mdss_mdp_perf_calc_ctl(struct mdss_mdp_ctl *ctl,
 			apply_fudge_factor(perf->bw_prefill,
 				&mdss_res->ib_factor));
 	}
-
+/* To avoid an underrun on HDMI TC, multiple additional factor value */
 	if(ctl->intf_type == MDSS_INTF_HDMI)
 		perf->bw_ctl = fudge_factor(perf->bw_ctl, 10, 6);
 
@@ -2417,6 +2421,7 @@ static void mdss_mdp_mixer_setup(struct mdss_mdp_ctl *master_ctl,
 	if (mixer->rotator_mode) {
 		off = __mdss_mdp_ctl_get_mixer_off(mixer);
 		mdss_mdp_ctl_write(mixer->ctl, off, 0);
+		MDSS_XLOG(mixer->num, 0x1111);
 		return;
 	}
 
@@ -2580,6 +2585,7 @@ update_mixer:
 	mdp_mixer_write(mixer, MDSS_MDP_REG_LM_OP_MODE, mixer_op_mode);
 	off = __mdss_mdp_ctl_get_mixer_off(mixer);
 	mdss_mdp_ctl_write(ctl, off, mixercfg);
+	MDSS_XLOG(mixer->num, mixercfg, 0x2222);
 }
 
 int mdss_mdp_mixer_addr_setup(struct mdss_data_type *mdata,

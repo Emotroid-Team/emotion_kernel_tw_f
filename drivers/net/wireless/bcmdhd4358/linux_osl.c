@@ -1,7 +1,7 @@
 /*
  * Linux OS Independent Layer
  *
- * Copyright (C) 1999-2014, Broadcom Corporation
+ * Copyright (C) 1999-2015, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: linux_osl.c 516842 2014-11-21 03:03:24Z $
+ * $Id: linux_osl.c 551293 2015-04-22 22:58:36Z $
  */
 
 #define LINUX_PORT
@@ -329,10 +329,9 @@ int osl_static_mem_init(osl_t *osh, void *adapter)
 			bcm_static_skb = NULL;
 			ASSERT(osh->magic == OS_HANDLE_MAGIC);
 			return -ENOMEM;
+		} else {
+			printk("alloc static buf at %p!\n", bcm_static_buf);
 		}
-		else
-			printk("alloc static buf at %x!\n", (unsigned int)bcm_static_buf);
-
 
 		sema_init(&bcm_static_buf->static_sem, 1);
 
@@ -771,7 +770,7 @@ osl_pktfree(osl_t *osh, void *p, bool send)
 
 	PKTDBG_TRACE(osh, (void *) skb, PKTLIST_PKTFREE);
 
-#if defined(BCMPCIE) && defined(CONFIG_DHD_USE_STATIC_BUF) && defined(DHD_USE_STATIC_CTRLBUF)
+#if defined(BCMPCIE) && defined(CONFIG_DHD_USE_STATIC_BUF)
 	if (skb && (skb->mac_len == PREALLOC_USED_MAGIC)) {
 		printk("%s: pkt %p is from static pool\n",
 			__FUNCTION__, p);
@@ -785,7 +784,7 @@ osl_pktfree(osl_t *osh, void *p, bool send)
 		dump_stack();
 		return;
 	}
-#endif /* BCMPCIE && CONFIG_DHD_USE_STATIC_BUF && DHD_USE_STATIC_CTRLBUF */
+#endif /* BCMPCIE && CONFIG_DHD_USE_STATIC_BUF */
 
 	/* perversion: we use skb->next to chain multi-skb packets */
 	while (skb) {
@@ -851,11 +850,12 @@ osl_pktget_static(osl_t *osh, uint len)
 			(index >= 0) && (index < STATIC_PKT_2PAGE_NUM)) {
 			bcm_static_skb->pkt_use[index] = 1;
 			skb = bcm_static_skb->skb_8k[index];
-			skb->data = skb->head + NET_SKB_PAD;
-			skb->tail = skb->head + NET_SKB_PAD;
+			skb->data = skb->head;
+			skb_set_tail_pointer(skb, NET_SKB_PAD);
+			skb->data += NET_SKB_PAD;
 			skb->cloned = 0;
 			skb->priority = 0;
-			skb->tail = skb->data + len;
+			skb_set_tail_pointer(skb, len);
 			skb->len = len;
 			skb->mac_len = PREALLOC_USED_MAGIC;
 			spin_unlock_irqrestore(&bcm_static_skb->osl_pkt_lock, flags);
@@ -881,7 +881,7 @@ osl_pktget_static(osl_t *osh, uint len)
 			bcm_static_skb->pkt_use[i] = 1;
 
 			skb = bcm_static_skb->skb_4k[i];
-			skb->tail = skb->data + len;
+			skb_set_tail_pointer(skb, len);
 			skb->len = len;
 
 			up(&bcm_static_skb->osl_pkt_sem);
@@ -900,7 +900,7 @@ osl_pktget_static(osl_t *osh, uint len)
 		if ((i >= STATIC_PKT_1PAGE_NUM) && (i < STATIC_PKT_1_2PAGE_NUM)) {
 			bcm_static_skb->pkt_use[i] = 1;
 			skb = bcm_static_skb->skb_8k[i - STATIC_PKT_1PAGE_NUM];
-			skb->tail = skb->data + len;
+			skb_set_tail_pointer(skb, len);
 			skb->len = len;
 
 			up(&bcm_static_skb->osl_pkt_sem);
@@ -914,7 +914,7 @@ osl_pktget_static(osl_t *osh, uint len)
 		bcm_static_skb->pkt_use[STATIC_PKT_MAX_NUM - 1] = 1;
 
 		skb = bcm_static_skb->skb_16k;
-		skb->tail = skb->data + len;
+		skb_set_tail_pointer(skb, len);
 		skb->len = len;
 
 		up(&bcm_static_skb->osl_pkt_sem);
@@ -965,6 +965,7 @@ osl_pktfree_static(osl_t *osh, void *p, bool send)
 				printk("%s: static pkt idx %d(%p) is not in used\n",
 					__FUNCTION__, i, p);
 			}
+
 			skb->mac_len = PREALLOC_FREE_MAGIC;
 			spin_unlock_irqrestore(&bcm_static_skb->osl_pkt_lock, flags);
 			return;
@@ -1002,15 +1003,18 @@ osl_pktfree_static(osl_t *osh, void *p, bool send)
 	osl_pktfree(osh, p, send);
 #endif /* BCMPCIE && DHD_USE_STATIC_CTRLBUF */
 }
+
 #if defined(BCMPCIE) && defined(DHD_USE_STATIC_CTRLBUF)
 void
 osl_pktinvalidate_static(osl_t *osh, void *p)
 {
 	int i;
 	unsigned long flags;
+
 	if (!bcm_static_skb) {
 		return;
 	}
+
 	spin_lock_irqsave(&bcm_static_skb->osl_pkt_lock, flags);
 	for (i = 0; i < STATIC_PKT_2PAGE_NUM; i++) {
 		if (p == bcm_static_skb->skb_8k[i]) {
@@ -1019,6 +1023,7 @@ osl_pktinvalidate_static(osl_t *osh, void *p)
 			break;
 		}
 	}
+
 	if (i == STATIC_PKT_2PAGE_NUM) {
 		printk("%s: pkt=%p isn't static pkt pool\n", __FUNCTION__, p);
 	}
@@ -1381,6 +1386,7 @@ osl_cpu_relax(void)
 	cpu_relax();
 }
 
+
 #if defined(USE_KMALLOC_FOR_FLOW_RING) && defined(__ARM_ARCH_7A__)
 
 inline void BCMFASTPATH
@@ -1618,3 +1624,38 @@ osl_is_flag_set(osl_t *osh, uint32 mask)
 {
 	return (osh->flags & mask);
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0) && defined(TSQ_MULTIPLIER)
+#include <linux/kallsyms.h>
+#include <net/sock.h>
+void
+osl_pkt_orphan_partial(struct sk_buff *skb)
+{
+	uint32 fraction;
+	static void *p_tcp_wfree = NULL;
+
+	if (!skb->destructor || skb->destructor == sock_wfree)
+		return;
+
+	if (unlikely(!p_tcp_wfree)) {
+		char sym[KSYM_SYMBOL_LEN];
+		sprint_symbol(sym, (unsigned long)skb->destructor);
+		sym[9] = 0;
+		if (!strcmp(sym, "tcp_wfree"))
+			p_tcp_wfree = skb->destructor;
+		else
+			return;
+	}
+
+	if (unlikely(skb->destructor != p_tcp_wfree || !skb->sk))
+		return;
+
+	/* abstract a certain portion of skb truesize from the socket
+	 * sk_wmem_alloc to allow more skb can be allocated for this
+	 * socket for better cusion meeting WiFi device requirement
+	 */
+	fraction = skb->truesize * (TSQ_MULTIPLIER - 1) / TSQ_MULTIPLIER;
+	skb->truesize -= fraction;
+	atomic_sub(fraction, &skb->sk->sk_wmem_alloc);
+}
+#endif /* LINUX_VERSION >= 3.6.0 && TSQ_MULTIPLIER */

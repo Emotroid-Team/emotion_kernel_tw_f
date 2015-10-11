@@ -42,8 +42,6 @@
 		qcom,dsi-pref-prim-pan = <&ss_dsi_panel_S6E3HA0_AMS510CW01_WQHD_0>;
 
 		qcom,platform-te-gpio = <&msm_gpio 12 0>;
-		qcom,platform-reset-gpio = <&pma8084_gpios 21 0>;
-		qcom,platform-enable-gpio = <&pma8084_gpios 6 0>;
 	};
 
 &mdss_dsi1 {

@@ -23,6 +23,8 @@
 #include <mach/gpiomux.h>
 #include "esoc.h"
 
+
+#include <mach/sec_debug.h>
 #define MDM_PBLRDY_CNT			20
 #define INVALID_GPIO			(-1)
 #define MDM_GPIO(mdm, i)		(mdm->gpios[i])
@@ -757,6 +759,11 @@ static int mdm_configure_ipc(struct mdm_ctrl *mdm, struct platform_device *pdev)
 
 	gpio_direction_output(MDM_GPIO(mdm, AP2MDM_STATUS), 0);
 	gpio_direction_output(MDM_GPIO(mdm, AP2MDM_ERRFATAL), 0);
+
+#ifdef CONFIG_SEC_SSR_DEBUG_LEVEL_CHK
+	if (!sec_debug_is_enabled_for_ssr())
+		gpio_direction_output(MDM_GPIO(mdm, AP2MDM_SOFT_RESET), 0);
+#endif
 
 	if (gpio_is_valid(MDM_GPIO(mdm, AP2MDM_CHNLRDY)))
 		gpio_direction_output(MDM_GPIO(mdm, AP2MDM_CHNLRDY), 0);
