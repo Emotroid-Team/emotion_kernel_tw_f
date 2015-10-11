@@ -1,0 +1,22 @@
+if [ -f $1 ]; then
+
+	if [[ ! -z $2 ]]; then
+		FAUXDIR=`dirname $1`
+		FAUXINLOCKED=`cat $FAUXDIR/gpl_sound_control_rec_locked`
+		FAUXOUTLOCKED=`cat $FAUXDIR/gpl_sound_control_locked`
+		WRITEVALUE=$(($2 + 256))
+		echo 0 > $FAUXDIR/gpl_sound_control_locked
+		echo 0 > $FAUXDIR/gpl_sound_control_rec_locked
+		echo "$WRITEVALUE" > $1
+		echo $FAUXINLOCKED > $FAUXDIR/gpl_sound_control_rec_locked
+		echo $FAUXOUTLOCKED > $FAUXDIR/gpl_sound_control_locked
+	fi
+
+	FAUXSOUND_RAW=`cat $1`
+	if [[ "$FAUXSOUND_RAW" -gt "50" ]]; then
+		READVALUE=$(($FAUXSOUND_RAW - 256))
+	else
+		READVALUE="$FAUXSOUND_RAW"
+	fi;
+	echo $READVALUE
+fi

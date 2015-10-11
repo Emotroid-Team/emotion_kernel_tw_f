@@ -1,0 +1,13 @@
+L=/data/.emotionkernel/disable_ipv6
+P=/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+CL=`cat /data/.emotionkernel/disable_ipv6`
+CP=`cat /proc/sys/net/ipv6/conf/wlan0/disable_ipv6`
+
+if [ -f $1 ]; then
+    if [[ ! -z "$2" ]]; then
+		echo $2 > $L
+		echo $2 > $1
+    fi
+   	echo $CL > $P
+   	echo $CL
+fi

@@ -24,12 +24,6 @@ case $1 in
 		$BB echo `getenforce`;
 		#/sys/fs/selinux/enforce
 	;;
-    fix_wifi)
-	svc wifi disable 2> /dev/null;
-	rm -f /data/misc/dhcp/dhcpcd*;
-	svc wifi enable 2> /dev/null;
-	echo "WIFI Release Renew is DONE";
-    ;;
 	optimizedb)
 		for i in `$BB find /data -iname "*.db"`; do 
 			$sbin/sqlite3 $i 'VACUUM;' 2> /dev/null;

@@ -1,0 +1,27 @@
+if [ -f $1 ]; then
+
+	if [[ ! -z $2 ]]; then
+		FAUXDIR=`dirname $1`
+		FAUXSOUND_RAW=`cat $1`
+		FAUXSOUND_L=`echo "$FAUXSOUND_RAW" | cut -d " " -f 1`
+		FAUXSOUND_R=`echo "$FAUXSOUND_RAW" | cut -d " " -f 2`
+		FAUXINLOCKED=`cat $FAUXDIR/gpl_sound_control_rec_locked`
+		FAUXOUTLOCKED=`cat $FAUXDIR/gpl_sound_control_locked`
+		WRITEVALUE=$(($2 + 256))
+		echo 0 > $FAUXDIR/gpl_sound_control_locked
+		echo 0 > $FAUXDIR/gpl_sound_control_rec_locked
+		echo "$WRITEVALUE $FAUXSOUND_R" > $1
+		echo $FAUXINLOCKED > $FAUXDIR/gpl_sound_control_rec_locked
+		echo $FAUXOUTLOCKED > $FAUXDIR/gpl_sound_control_locked
+	fi
+
+	FAUXSOUND_RAW=`cat $1`
+	FAUXSOUND_L=`echo "$FAUXSOUND_RAW" | cut -d " " -f 1`
+	if [[ "$FAUXSOUND_L" -gt "50" ]]; then
+		READVALUE=$(($FAUXSOUND_L - 256))
+	else
+		READVALUE="$FAUXSOUND_L"
+	fi;
+	#echo "$FAUXSOUND_RAW // $FAUXSOUND_L // $READVALUE" > /data/local/tmp/test
+	echo $READVALUE
+fi

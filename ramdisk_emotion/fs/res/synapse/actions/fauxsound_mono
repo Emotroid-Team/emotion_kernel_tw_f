@@ -1,0 +1,17 @@
+if [ -f $1 ]; then
+
+	if [[ ! -z $2 ]]; then
+		FAUXDIR=`dirname $1`
+		FAUXINLOCKED=`cat $FAUXDIR/gpl_sound_control_rec_locked`
+		FAUXOUTLOCKED=`cat $FAUXDIR/gpl_sound_control_locked`
+		echo 0 > $FAUXDIR/gpl_sound_control_locked
+		echo 0 > $FAUXDIR/gpl_sound_control_rec_locked
+		echo "$2 $2" > $1
+		echo $FAUXINLOCKED > $FAUXDIR/gpl_sound_control_rec_locked
+		echo $FAUXOUTLOCKED > $FAUXDIR/gpl_sound_control_locked
+	fi
+
+	FAUXSOUND_RAW=`cat $1`
+	FAUXSOUND_L=`echo "$FAUXSOUND_RAW" | cut -d " " -f 1`
+	echo $FAUXSOUND_L
+fi

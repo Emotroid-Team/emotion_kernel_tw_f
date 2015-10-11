@@ -1,0 +1,22 @@
+From 99d485b37e2021b3746393a8d530e8a3061adc86 Mon Sep 17 00:00:00 2001
+From: placiano <placiano80@gmail.com>
+Date: Wed, 2 Sep 2015 01:11:05 +0200
+Subject: [PATCH] SM-N910P_511: default.prop patch
+
+---
+ SM-N910P_511/default.prop | 2 ++
+ 1 file changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/SM-N910P_511/default.prop b/SM-N910P_511/default.prop
+index aa8505d..858b6fd 100644
+--- a/SM-N910P_511/default.prop
++++ b/SM-N910P_511/default.prop
+@@ -34,3 +34,5 @@ dalvik.vm.dex2oat-Xmx=512m
+ dalvik.vm.image-dex2oat-Xms=64m
+ dalvik.vm.image-dex2oat-Xmx=64m
+ ro.dalvik.vm.native.bridge=0
++androidboot.selinux=0
++wlan.wfd.hdcp=disable
+--
+libgit2 0.22.2
+

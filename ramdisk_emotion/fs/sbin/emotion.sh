@@ -68,7 +68,7 @@ $BBX fstrim -v /data >> /data/emotiontest.log
 
 sync
 
-#SSWAP to 1.5gb
+#SSWAP to 1.2gb
 /res/ext/sswap.sh
 
 # Execute setenforce to permissive (workaround as it is already permissive that time)
@@ -109,13 +109,15 @@ fi
 	pm disable com.samsung.knox.rcp.components	
 	pm disable com.samsung.android.securitylogagent
 
-# Init.d
-if [ ! -d "/system/etc/init.d" ] ; then
-mount -o remount,rw -t auto /system
-mkdir /system/etc/init.d
-chmod 0755 /system/etc/init.d/*
-mount -o remount,ro -t auto /system
-fi
+# init.d
+chmod 755 /system/etc/init.d/ -R
+if [ ! -d /system/etc/init.d ]; then
+mkdir -p /system/etc/init.d/;
+chown -R root.root /system/etc/init.d;
+chmod 777 /system/etc/init.d/;
+else
+/sbin/busybox run-parts /system/etc/init.d
+fi;
 
 # frandom permissions
 chmod 444 /dev/erandom
@@ -124,20 +126,21 @@ chmod 444 /dev/frandom
 sync
 
 #Set default values on boot
-echo "2649600" > /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq
+echo "2649600" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 echo "1" > /sys/kernel/dyn_fsync/Dyn_fsync_active
-echo "883200" > /sys/kernel/cpufreq_hardlimit/touchboost_lo_freq
 echo "200000000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 echo "600000000" > /sys/class/kgsl/kgsl-3d0/max_gpuclk
 
 sync
 
-#Faux Sound Headphones
-if [ ! -f /data/.emotionkernel/gpl_headphone_gain ]; then
-	echo "0" > /data/.emotionkernel/gpl_headphone_gain
-	echo "1" > /data/.emotionkernel/check
-	echo "244" > /data/.emotionkernel/gpl_headphone_pa_gain
-fi
+# ipv6 disable
+echo "0" > /data/.emotionkernel/disable_ipv6
+
+#Set fauxsound defaults.
+echo "0" > /sys/kernel/sound_control_3/gpl_sound_control_locked
+echo "0 0" > /sys/kernel/sound_control_3/gpl_headphone_gain
+echo "0 0" > /sys/kernel/sound_control_3/gpl_speaker_gain
+echo "1" > /sys/kernel/sound_control_3/gpl_sound_control_locked
 
 #Voltage Control
 if [ ! -f /data/.emotionkernel/volt_prof ]; then
@@ -160,10 +163,6 @@ if [ ! -f /data/.emotionkernel/bck_prof ]; then
 	cp -f /res/synapse/files/lmk_prof /data/.emotionkernel/lmk_prof
 	cp -f /res/synapse/files/mass_storage /data/.emotionkernel/mass_storage
 	cp -f /res/synapse/files/hotplug_prof /data/.emotionkernel/hotplug_prof
-	cp -f /res/synapse/files/tcp_security /data/.emotionkernel/tcp_security
-	cp -f /res/synapse/files/dns /data/.emotionkernel/dns
-	cp -f /res/synapse/files/tcp_speed /data/.emotionkernel/tcp_speed
-	cp -f /res/synapse/files/scr_mirror_fix /data/.emotionkernel/scr_mirror_fix
 	cp -f /res/synapse/files/wake_prof /data/.emotionkernel/wake_prof
 fi
 
@@ -178,19 +177,6 @@ ln -fs /res/synapse/uci /sbin/uci
 mount -t rootfs -o remount,ro rootfs
 
 sync
-
-# Google play services wakelock fix
-sleep 40
-su -c "pm enable com.google.android.gms/.update.SystemUpdateActivity"
-su -c "pm enable com.google.android.gms/.update.SystemUpdateService"
-su -c "pm enable com.google.android.gms/.update.SystemUpdateService$ActiveReceiver"
-su -c "pm enable com.google.android.gms/.update.SystemUpdateService$Receiver"
-su -c "pm enable com.google.android.gms/.update.SystemUpdateService$SecretCodeReceiver"
-su -c "pm enable com.google.android.gsf/.update.SystemUpdateActivity"
-su -c "pm enable com.google.android.gsf/.update.SystemUpdatePanoActivity"
-su -c "pm enable com.google.android.gsf/.update.SystemUpdateService"
-su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$Receiver"
-su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$SecretCodeReceiver"
 
 #Fin
 mount -t rootfs -o remount,ro rootfs

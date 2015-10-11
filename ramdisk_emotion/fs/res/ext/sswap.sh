@@ -9,7 +9,7 @@ export PATH
 mount -o remount,rw -t auto /system
 mount -t rootfs -o remount,rw rootfs
 
-SWAPSIZE=1536
+SWAPSIZE=1280
 PRIORITY=10
 
 if cat /proc/swaps | grep -q vnswap0 ; then
