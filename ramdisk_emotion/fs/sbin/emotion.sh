@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-PATH=/sbin:/system/sbin:/system/bin:/system/xbin
+PATH=/sbin:/system/sbin:/system/bin:/system/xbin:/MultiSystem/sbin:/MultiSystem/bin:/MultiSystem/xbin
 export PATH
 
 BBX=/system/xbin/busybox
@@ -9,6 +9,10 @@ BBX=/system/xbin/busybox
 mount -o remount,rw -t auto /
 mount -o remount,rw -t auto /system
 mount -t rootfs -o remount,rw rootfs
+
+# IntelliThermal enabled
+echo "1" > /sys/module/msm_thermal/parameters/enabled
+echo "1" > /sys/module/msm_thermal/core_control/enabled
 
 if [ -f $BBX ]; then
 	chown 0:2000 $BBX
@@ -71,6 +75,31 @@ sync
 #SSWAP to 1.2gb
 /res/ext/sswap.sh
 
+# Fix synapse database permissions.
+if [ -d /data/data/com.af.synapse ]; then
+SYNAPSE_OWNER=`ls -ld /data/data/com.af.synapse | awk 'NR==1 {print $3}'`
+if [ ! -z $SYNAPSE_OWNER ]; then
+/sbin/busybox chown "$SYNAPSE_OWNER"."$SYNAPSE_OWNER" /data/data/com.af.synapse/databases -R
+fi;
+chmod 771 /data/data/com.af.synapse/databases
+chmod 660 /data/data/com.af.synapse/databases/actionValueStore
+chmod 600 /data/data/com.af.synapse/databases/actionValueStore-journal
+fi;
+ 
+# init.d
+chmod 755 /system/etc/init.d/ -R
+if [ ! -d /system/etc/init.d ]; then
+mkdir -p /system/etc/init.d/;
+chown -R root.root /system/etc/init.d;
+chmod 777 /system/etc/init.d/;
+else
+echo "0" > /sys/module/msm_thermal/parameters/enabled
+echo "0" > /sys/module/msm_thermal/core_control/enabled
+/sbin/busybox run-parts /system/etc/init.d
+echo "1" > /sys/module/msm_thermal/parameters/enabled
+echo "1" > /sys/module/msm_thermal/core_control/enabled
+fi;
+
 # Execute setenforce to permissive (workaround as it is already permissive that time)
 /system/bin/setenforce 0
 
@@ -102,22 +131,12 @@ if [ ! -d /data/.emotionkernel ]; then
 fi
 
 # Disable knox
-	pm disable com.sec.enterprise.knox.cloudmdm.smdms
-	pm disable com.sec.knox.bridge
-	pm disable com.sec.enterprise.knox.attestation
-	pm disable com.sec.knox.knoxsetupwizardclient
-	pm disable com.samsung.knox.rcp.components	
-	pm disable com.samsung.android.securitylogagent
-
-# init.d
-chmod 755 /system/etc/init.d/ -R
-if [ ! -d /system/etc/init.d ]; then
-mkdir -p /system/etc/init.d/;
-chown -R root.root /system/etc/init.d;
-chmod 777 /system/etc/init.d/;
-else
-/sbin/busybox run-parts /system/etc/init.d
-fi;
+    pm disable com.sec.enterprise.knox.cloudmdm.smdms
+    pm disable com.sec.knox.bridge
+    pm disable com.sec.enterprise.knox.attestation
+    pm disable com.sec.knox.knoxsetupwizardclient
+    pm disable com.samsung.knox.rcp.components  
+    pm disable com.samsung.android.securitylogagent
 
 # frandom permissions
 chmod 444 /dev/erandom
@@ -126,10 +145,34 @@ chmod 444 /dev/frandom
 sync
 
 #Set default values on boot
+echo "2649600" > /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq
 echo "2649600" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 echo "1" > /sys/kernel/dyn_fsync/Dyn_fsync_active
+echo "883200" > /sys/kernel/cpufreq_hardlimit/touchboost_lo_freq
 echo "200000000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 echo "600000000" > /sys/class/kgsl/kgsl-3d0/max_gpuclk
+
+# i/o schedulers.
+echo fiops > /sys/block/mmcblk0/queue/scheduler
+echo fiops > /sys/block/mmcblk1/queue/scheduler
+ 
+# i/o read-ahead.
+echo 2048 > /sys/block/mmcblk0/queue/read_ahead_kb
+echo 2048 > /sys/block/mmcblk1/queue/read_ahead_kb
+ 
+for i in /sys/block/*/queue/add_random; do
+echo 0 > $i
+done
+ 
+# HMP scheduler load tracking settings
+echo 3 > /proc/sys/kernel/sched_ravg_hist_size
+ 
+# HMP Task packing settings
+echo 20 > /proc/sys/kernel/sched_small_task
+echo 30 > /proc/sys/kernel/sched_mostly_idle_load
+echo 3 > /proc/sys/kernel/sched_mostly_idle_nr_run
+echo 2 > /proc/sys/kernel/sched_window_stats_policy
+echo 5 > /proc/sys/kernel/sched_ravg_hist_size
 
 sync
 
@@ -141,6 +184,13 @@ echo "0" > /sys/kernel/sound_control_3/gpl_sound_control_locked
 echo "0 0" > /sys/kernel/sound_control_3/gpl_headphone_gain
 echo "0 0" > /sys/kernel/sound_control_3/gpl_speaker_gain
 echo "1" > /sys/kernel/sound_control_3/gpl_sound_control_locked
+
+#Faux Sound Headphones
+if [ ! -f /data/.emotionkernel/gpl_headphone_gain ]; then
+    echo "0" > /data/.emotionkernel/gpl_headphone_gain
+    echo "1" > /data/.emotionkernel/check
+    echo "244" > /data/.emotionkernel/gpl_headphone_pa_gain
+fi
 
 #Voltage Control
 if [ ! -f /data/.emotionkernel/volt_prof ]; then
@@ -163,22 +213,33 @@ if [ ! -f /data/.emotionkernel/bck_prof ]; then
 	cp -f /res/synapse/files/lmk_prof /data/.emotionkernel/lmk_prof
 	cp -f /res/synapse/files/mass_storage /data/.emotionkernel/mass_storage
 	cp -f /res/synapse/files/hotplug_prof /data/.emotionkernel/hotplug_prof
-	cp -f /res/synapse/files/wake_prof /data/.emotionkernel/wake_prof
 	cp -f /res/synapse/files/tcp_security /data/.emotionkernel/tcp_security
 	cp -f /res/synapse/files/dns /data/.emotionkernel/dns
 	cp -f /res/synapse/files/tcp_speed /data/.emotionkernel/tcp_speed
 	cp -f /res/synapse/files/scr_mirror_fix /data/.emotionkernel/scr_mirror_fix
+	cp -f /res/synapse/files/wake_prof /data/.emotionkernel/wake_prof
 fi
-
-stop thermal-engine
-/system/xbin/busybox run-parts /system/etc/init.d
-start thermal-engine
 
 # Synapse
 mount -t rootfs -o remount,rw rootfs
 ln -fs /res/synapse/uci /sbin/uci
 /sbin/uci
 mount -t rootfs -o remount,ro rootfs
+
+sync
+
+# Google play services wakelock fix
+sleep 40
+su -c "pm enable com.google.android.gms/.update.SystemUpdateActivity"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$ActiveReceiver"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$Receiver"
+su -c "pm enable com.google.android.gms/.update.SystemUpdateService$SecretCodeReceiver"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateActivity"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdatePanoActivity"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$Receiver"
+su -c "pm enable com.google.android.gsf/.update.SystemUpdateService$SecretCodeReceiver"
 
 sync
 
