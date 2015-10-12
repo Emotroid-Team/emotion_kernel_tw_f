@@ -1,0 +1,42 @@
+From df7b52cc6d07ee26961517ea3c4734cd3dc8ed15 Mon Sep 17 00:00:00 2001
+From: Hamada Badr <hamada.s.badr@gmail.com>
+Date: Mon, 12 Oct 2015 13:23:17 -0400
+Subject: [PATCH 2/6] default.prop.patch
+
+---
+ default.prop | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/default.prop b/default.prop
+index defbff1..7528e30 100644
+--- a/default.prop
++++ b/default.prop
+@@ -2,15 +2,20 @@
+ # ADDITIONAL_DEFAULT_PROPERTIES
+ #
+ persist.cne.feature=0
+-persist.security.ams.enforcing=1
+-ro.secure=1
++persist.security.ams.enforcing=0
++ro.secure=0
+ ro.allow.mock.location=0
+-ro.debuggable=0
+-ro.adb.secure=1
++ro.debuggable=1
++ro.adb.secure=0
+ ro.zygote=zygote32
+-persist.sys.usb.config=mtp
++persist.sys.usb.config=mtp,adb
+ dalvik.vm.dex2oat-Xms=64m
+ dalvik.vm.dex2oat-Xmx=512m
+ dalvik.vm.image-dex2oat-Xms=64m
+ dalvik.vm.image-dex2oat-Xmx=64m
+ ro.dalvik.vm.native.bridge=0
++ro.securestorage.support=false
++wlan.wfd.hdcp=disable
++androidboot.selinux=0
++ro.config.knox=0
++ro.config.tima=0
+-- 
+2.6.1
+

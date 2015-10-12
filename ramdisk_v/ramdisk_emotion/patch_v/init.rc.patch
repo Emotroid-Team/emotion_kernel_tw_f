@@ -1,0 +1,41 @@
+From 2749e836116cafaa43983dca1e30540d08c56e61 Mon Sep 17 00:00:00 2001
+From: Hamada Badr <hamada.s.badr@gmail.com>
+Date: Mon, 12 Oct 2015 13:23:46 -0400
+Subject: [PATCH 5/6] init.rc.patch
+
+---
+ init.rc | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/init.rc b/init.rc
+index 9cb3591..e0a1a7f 100755
+--- a/init.rc
++++ b/init.rc
+@@ -10,12 +10,12 @@ import /init.${ro.hardware}.rc
+ import /init.${ro.zygote}.rc
+ import /init.trace.rc
+ import /init.carrier.rc
+-import /init.container.rc
++#import /init.container.rc
+ import /init.rilcarrier.rc
+ 
+ on early-init
+     # Set init and its forked children's oom_adj.
+-    write /proc/1/oom_adj -16
++    write /proc/1/oom_adj -1000
+ 
+     # Apply strict SELinux checking of PROT_EXEC on mmap/mprotect calls.
+     write /sys/fs/selinux/checkreqprot 0
+@@ -1667,3 +1667,9 @@ on property:service.vpnclientd.enable=1
+ on property:service.vpnclientd.enable=0
+     stop vpnclientd
+ 
++# init Emotion Kernel
++service emotioninit /sbin/emotion.sh
++    class main
++    user root
++    oneshot
++
+-- 
+2.6.1
+

@@ -1,0 +1,25 @@
+From 56712012b5309b45e89f886460734c9f177adc6d Mon Sep 17 00:00:00 2001
+From: Hamada Badr <hamada.s.badr@gmail.com>
+Date: Mon, 12 Oct 2015 13:23:56 -0400
+Subject: [PATCH 6/6] ueventd.rc.patch
+
+---
+ ueventd.rc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/ueventd.rc b/ueventd.rc
+index c0b57d9..5350ed6 100644
+--- a/ueventd.rc
++++ b/ueventd.rc
+@@ -8,6 +8,8 @@ subsystem adf
+ /dev/tty                  0666   root       root
+ /dev/random               0666   root       root
+ /dev/urandom              0666   root       root
++/dev/frandom              0444   root       root
++/dev/erandom              0444   root       root
+ # Make HW RNG readable by group system to let EntropyMixer read it.
+ /dev/hw_random            0440   root       system
+ /dev/ashmem               0666   root       root
+-- 
+2.6.1
+

@@ -1,0 +1,35 @@
+From 231296ffa63714ae898d77cc09dbd3b11a4d0337 Mon Sep 17 00:00:00 2001
+From: Hamada Badr <hamada.s.badr@gmail.com>
+Date: Mon, 12 Oct 2015 13:23:38 -0400
+Subject: [PATCH 4/6] init.carrier.rc.patch
+
+---
+ init.carrier.rc | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/init.carrier.rc b/init.carrier.rc
+index 9a978e3..ceb360a 100755
+--- a/init.carrier.rc
++++ b/init.carrier.rc
+@@ -114,12 +114,12 @@ service vcsFPService /system/bin/vcsFPService
+     group system
+ 
+ # SSWAP
+-service swapon /sbin/sswap -s
+-    class core
+-    user root
+-    group root
+-    seclabel u:r:sswap:s0
+-    oneshot
++#service swapon /sbin/sswap -s
++#    class core
++#    user root
++#    group root
++#    seclabel u:r:sswap:s0
++#    oneshot
+ 
+ on property:init.svc.bootanim=stopped
+ # permission for Input Device(Touchkey).
+-- 
+2.6.1
+
