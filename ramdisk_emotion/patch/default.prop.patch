@@ -1,0 +1,42 @@
+From 160ea6c415ca3cb2f4eb4ed38c4e10476ab5026e Mon Sep 17 00:00:00 2001
+From: placiano <placiano80@gmail.com>
+Date: Sun, 30 Aug 2015 17:55:36 +0200
+Subject: [PATCH] SM_N910F_511: patch default.prop
+
+---
+ SM-N910F_511/default.prop | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/SM-N910F_511/default.prop b/SM-N910F_511/default.prop
+index fb63a9b..d0eed9b 100644
+--- a/SM-N910F_511/default.prop
++++ b/SM-N910F_511/default.prop
+@@ -1,15 +1,20 @@
+ #
+ # ADDITIONAL_DEFAULT_PROPERTIES
+ #
+-persist.security.ams.enforcing=1
+-ro.secure=1
++persist.security.ams.enforcing=0
++ro.secure=0
+ ro.allow.mock.location=0
+-ro.debuggable=0
+-ro.adb.secure=1
++ro.debuggable=1
++ro.adb.secure=0
+ ro.zygote=zygote32
+-persist.sys.usb.config=mtp
++persist.sys.usb.config=mtp,adb
+ dalvik.vm.dex2oat-Xms=64m
+ dalvik.vm.dex2oat-Xmx=512m
+ dalvik.vm.image-dex2oat-Xms=64m
+ dalvik.vm.image-dex2oat-Xmx=64m
+ ro.dalvik.vm.native.bridge=0
++ro.securestorage.support=false
++wlan.wfd.hdcp=disable
++androidboot.selinux=0
++ro.config.knox=0
++ro.config.tima=0
+--
+libgit2 0.22.2
+

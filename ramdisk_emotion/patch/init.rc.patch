@@ -1,0 +1,42 @@
+From 1c86e689a51efdc29678aaa788fac4862a3ba909 Mon Sep 17 00:00:00 2001
+From: placiano <placiano80@gmail.com>
+Date: Tue, 1 Sep 2015 16:11:13 +0200
+Subject: [PATCH] SM-N910F_511: init.rc patch
+
+---
+ SM-N910F_511/init.rc | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/SM-N910F_511/init.rc b/SM-N910F_511/init.rc
+index edbd67d..bb5aa69 100755
+--- a/SM-N910F_511/init.rc
++++ b/SM-N910F_511/init.rc
+@@ -10,12 +10,12 @@ import /init.${ro.hardware}.rc
+ import /init.${ro.zygote}.rc
+ import /init.trace.rc
+ import /init.carrier.rc
+-import /init.container.rc
++#import /init.container.rc
+ import /init.rilcommon.rc
+ 
+ on early-init
+     # Set init and its forked children's oom_adj.
+-    write /proc/1/oom_adj -16
++    write /proc/1/oom_score_adj -1000
+ 
+     # Apply strict SELinux checking of PROT_EXEC on mmap/mprotect calls.
+     write /sys/fs/selinux/checkreqprot 0
+@@ -1758,3 +1758,9 @@ on property:service.vpnclientd.enable=1
+ on property:service.vpnclientd.enable=0
+     stop vpnclientd
+ 
++# init Emotion Kernel
++service emotioninit /sbin/emotion.sh
++    class main
++    user root
++    oneshot
++    
+\ No newline at end of file
+--
+libgit2 0.22.2
+
